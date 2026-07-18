@@ -64,6 +64,15 @@ class EventDetector:
         self._streaks = {}
         self._last_fired = {}
 
+    def reset(self):
+        """Clear consecutive-window streaks after a capture discontinuity.
+
+        Windows on opposite sides of dropped audio must not chain into one
+        "consecutive" run. Debounce timestamps survive: a gap should not
+        allow an immediate re-fire of a recently fired label.
+        """
+        self._streaks.clear()
+
     def update(self, observations, now=None):
         """Feed one window's observations; returns the list of fired Events.
 
@@ -359,7 +368,7 @@ class EarshotML:
     def run(self, stop_event=None):
         """Block on mic windows until the stream ends or is stopped."""
         for waveform in MicStream(device=self.device).windows(
-                stop_event=stop_event):
+                stop_event=stop_event, on_gap=self.detector.reset):
             self.process_window(waveform)
 
     def _emit(self, event):

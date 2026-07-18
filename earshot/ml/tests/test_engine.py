@@ -415,8 +415,9 @@ def test_run_forwards_stop_event_to_stream_and_exits(monkeypatch):
         def __init__(self, device=None):
             received["device"] = device
 
-        def windows(self, stop_event=None):
+        def windows(self, stop_event=None, on_gap=None):
             received["stop_event"] = stop_event
+            received["on_gap"] = on_gap
             yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
             stop_event.set()
 
@@ -425,6 +426,7 @@ def test_run_forwards_stop_event_to_stream_and_exits(monkeypatch):
     monkeypatch.setattr(core, "MicStream", FakeMicStream)
 
     assert engine.run(stop_event=stop_event) is None
-    assert received == {"device": "fake-device", "stop_event": stop_event}
+    assert received == {"device": "fake-device", "stop_event": stop_event,
+                        "on_gap": engine.detector.reset}
     assert stop_event.is_set()
     assert len(fake.infer_calls) == 1

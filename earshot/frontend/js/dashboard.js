@@ -119,14 +119,17 @@
                     body: form,
                 });
                 const result = await response.json();
-                if (result.ok) {
+                if (response.ok && result.ok) {
                     const names = (result.learned ?? []).map((s) => s.name).join(", ");
                     setNote(`Learned "${nameInput.value.trim()}". Known: ${names}`, "ok");
                     resetTeach();
                     void loadRules();
                 }
                 else {
-                    setNote(`Teach failed: ${result.error ?? "unknown"}`, "err");
+                    // Backend reports failures as HTTP errors with a `detail` message
+                    // (422 bad clips, 503 ML unavailable, 504 timeout).
+                    setNote(`Teach failed: ${result.detail ?? response.statusText}`, "err");
+                    teachButton.disabled = false;
                 }
             }
             catch (err) {

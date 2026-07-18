@@ -170,8 +170,13 @@ class MicStream:
         self.device = device
         self.queue_size = queue_size
 
-    def windows(self, stop_event=None):
-        """Blocking generator of float32 arrays, `window` samples each."""
+    def windows(self, stop_event=None, on_gap=None):
+        """Blocking generator of float32 arrays, `window` samples each.
+
+        on_gap: optional callable invoked when a capture discontinuity
+        (dropped blocks) clears the buffer, so downstream state that spans
+        windows — e.g. detector streaks — can reset too.
+        """
         sd = _load_sounddevice()
         blocks = LatestBlockQueue(maxsize=self.queue_size)
 
@@ -212,6 +217,8 @@ class MicStream:
                 if (previous_sequence is not None
                         and sequence != previous_sequence + 1):
                     buf = np.zeros(0, dtype=np.float32)
+                    if on_gap is not None:
+                        on_gap()
                 previous_sequence = sequence
                 buf = np.concatenate([buf, block])
                 while (len(buf) >= self.window
