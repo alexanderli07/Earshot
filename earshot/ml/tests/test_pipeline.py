@@ -995,3 +995,82 @@ def test_top_preserves_descending_class_ranking(tmp_path):
         ("class 2", pytest.approx(0.8)),
         ("class 4", pytest.approx(0.7)),
     ]
+
+
+def test_mic_stream_falls_back_to_native_rate_and_resamples(monkeypatch):
+    """A laptop mic that rejects 16 kHz is captured at its native rate and
+    resampled, so laptop-only (no-Pi) demos survive picky audio hosts."""
+    received = {}
+
+    class FakeInputStream:
+        def __init__(self, **kwargs):
+            received.update(kwargs)
+            self.callback = kwargs["callback"]
+
+        def __enter__(self):
+            block = np.linspace(0.0, 1.0, 12, dtype=np.float32).reshape(-1, 1)
+            self.callback(block, 12, None, None)
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+    def check_input_settings(**kwargs):
+        raise RuntimeError("16 kHz not supported by this host")
+
+    def query_devices(device, kind):
+        assert kind == "input"
+        return {"default_samplerate": 48000.0}
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sounddevice",
+        types.SimpleNamespace(
+            InputStream=FakeInputStream,
+            check_input_settings=check_input_settings,
+            query_devices=query_devices,
+        ),
+    )
+    windows = pipeline.MicStream(samplerate=16000, window=4, hop=2).windows()
+
+    result = next(windows)
+    windows.close()
+
+    assert received["samplerate"] == 48000       # captured natively
+    assert received["blocksize"] == 6            # hop scaled 2 -> 6
+    assert len(result) == 4                      # resampled back to 16 kHz
+
+
+def test_mic_stream_keeps_direct_path_when_16k_is_supported(monkeypatch):
+    received = {}
+
+    class FakeInputStream:
+        def __init__(self, **kwargs):
+            received.update(kwargs)
+            self.callback = kwargs["callback"]
+
+        def __enter__(self):
+            self.callback(
+                np.zeros((4, 1), dtype=np.float32), 4, None, None)
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sounddevice",
+        types.SimpleNamespace(
+            InputStream=FakeInputStream,
+            check_input_settings=lambda **kwargs: None,
+            query_devices=lambda device, kind: {"default_samplerate": 48000.0},
+        ),
+    )
+    windows = pipeline.MicStream(samplerate=16000, window=4, hop=2).windows()
+
+    result = next(windows)
+    windows.close()
+
+    assert received["samplerate"] == 16000       # direct path kept
+    assert received["blocksize"] == 2
+    assert len(result) == 4

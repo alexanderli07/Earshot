@@ -8,6 +8,7 @@ need Node; the backend just serves the files.
 |------|---------|------|
 | `dashboard.html` | laptop | live event feed over WebSocket, teach flow (3 recorded clips), per-sound rules |
 | `wearable.html` | the wrist phone (Android Chrome) | full-screen flash in the urgency color, giant label, vibration pattern |
+| `virtual-puck.html` | any browser | stand-in for the physical LED + motor: same urgency colors, strobe/pulse/blink timings, and priority latch — for hardware-free demos (see [docs/laptop-fallback.md](../docs/laptop-fallback.md)) |
 
 ## Use
 

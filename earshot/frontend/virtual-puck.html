@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earshot · Virtual Puck</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='9' width='6' height='14' rx='3' fill='%23D93036'/><rect x='8.7' y='4' width='6' height='24' rx='3' fill='%232456D6'/><rect x='17.3' y='7' width='6' height='18' rx='3' fill='%23DB8B00'/><rect x='26' y='11' width='6' height='10' rx='3' fill='%23178A50'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --silence: #ECEFF3;
+    --card: #FFFFFF;
+    --ink: #10151C;
+    --ink-soft: #46515C;
+    --line: #D6DCE3;
+    --alarm: #D93036;
+    --door: #2456D6;
+    --appliance: #DB8B00;
+    --taught: #178A50;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--silence);
+    color: var(--ink);
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
+
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    max-width: 1180px; width: 100%; margin: 0 auto;
+    padding: 26px 24px 18px;
+  }
+
+  header h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  header .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-top: 3px;
+  }
+
+  .mark { display: block; flex: none; }
+  .grow { flex: 1; }
+
+  #host {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    width: 170px;
+  }
+
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-soft); flex: none; }
+  .dot.on { background: var(--taught); animation: pulse 1.6s ease-in-out infinite; }
+  .dot.off { background: var(--alarm); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(23, 138, 80, .4); }
+    50%      { box-shadow: 0 0 0 6px rgba(23, 138, 80, 0); }
+  }
+
+  main {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px 24px 56px;
+  }
+
+  .device {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 21, 28, .05);
+    padding: 40px 48px 32px;
+    width: min(420px, 100%);
+    text-align: center;
+  }
+
+  .device h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+
+  /* the LED */
+  #led {
+    width: 130px; height: 130px; border-radius: 50%;
+    margin: 0 auto 28px;
+    background: var(--silence);
+    border: 1px solid var(--line);
+    transition: background .05s linear;
+  }
+  #led.lit { border-color: transparent; }
+
+  /* the motor */
+  #motor {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 26px;
+    margin-bottom: 26px;
+    background: var(--card);
+  }
+  #motor.buzz {
+    color: var(--ink);
+    border-color: var(--ink-soft);
+    animation: shake .08s linear infinite;
+  }
+  @keyframes shake {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-2px, 1px); }
+    50%  { transform: translate(2px, -1px); }
+    75%  { transform: translate(-1px, -1px); }
+    100% { transform: translate(1px, 1px); }
+  }
+
+  #evt {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 1.1;
+    text-transform: uppercase;
+    min-height: 30px;
+    margin-bottom: 6px;
+  }
+
+  #state {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft);
+    min-height: 16px;
+  }
+
+  .foot-note {
+    max-width: 1180px; width: 100%; margin: 0 auto;
+    padding: 0 24px 32px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot.on { animation: none; }
+    #motor.buzz { animation: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <svg class="mark" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+    <rect x="0" y="9" width="6" height="14" rx="3" fill="#D93036"/>
+    <rect x="8.7" y="4" width="6" height="24" rx="3" fill="#2456D6"/>
+    <rect x="17.3" y="7" width="6" height="18" rx="3" fill="#DB8B00"/>
+    <rect x="26" y="11" width="6" height="10" rx="3" fill="#178A50"/>
+  </svg>
+  <h1>EARSHOT</h1><span class="sub">Virtual puck</span>
+  <div class="grow"></div>
+  <input id="host" title="Backend host:port" placeholder="localhost:8000">
+  <span class="status"><span id="dot" class="dot" aria-hidden="true"></span><span id="stat">connecting</span></span>
+</header>
+
+<main>
+  <section class="device" aria-label="Virtual alert hardware">
+    <h2>Alert unit</h2>
+    <div id="led" aria-hidden="true"></div>
+    <div id="motor">Motor</div>
+    <div id="evt"></div>
+    <div id="state">listening</div>
+  </section>
+</main>
+
+<p class="foot-note">Browser stand-in for the Pi's RGB LED and vibration motor —
+same urgency colors, pattern timings, and priority rules as the GPIO
+controller. For demos with no hardware at all.</p>
+
+<script src="js/shared.js"></script>
+<script src="js/virtualpuck.js"></script>
+</body>
+</html>

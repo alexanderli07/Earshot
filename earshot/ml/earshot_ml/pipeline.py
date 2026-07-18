@@ -170,10 +170,40 @@ class MicStream:
         self.device = device
         self.queue_size = queue_size
 
+    def _capture_settings(self, sd):
+        """Pick (samplerate, blocksize) the device can actually deliver.
+
+        Laptop mics are usually 44.1/48 kHz and some hosts reject a direct
+        16 kHz request. Prefer 16 kHz; fall back to the device's native rate
+        and resample. Guarded with getattr so minimal test fakes (and hosts
+        without these helpers) keep the direct path.
+        """
+        check = getattr(sd, "check_input_settings", None)
+        query = getattr(sd, "query_devices", None)
+        if check is None or query is None:
+            return self.samplerate, self.hop
+        try:
+            check(samplerate=self.samplerate, channels=1, dtype="float32",
+                  device=self.device)
+            return self.samplerate, self.hop
+        except Exception:
+            pass
+        try:
+            info = query(self.device, "input")
+            native = int(round(float(info["default_samplerate"])))
+        except Exception:
+            return self.samplerate, self.hop
+        if native <= 0 or native == self.samplerate:
+            return self.samplerate, self.hop
+        print(f"[mic] device won't capture at {self.samplerate} Hz; "
+              f"capturing at {native} Hz and resampling", file=sys.stderr)
+        return native, max(1, round(self.hop * native / self.samplerate))
+
     def windows(self, stop_event=None):
         """Blocking generator of float32 arrays, `window` samples each."""
         sd = _load_sounddevice()
         blocks = LatestBlockQueue(maxsize=self.queue_size)
+        capture_sr, capture_hop = self._capture_settings(sd)
 
         def callback(indata, frames, time_info, status):
             if status:
@@ -184,10 +214,10 @@ class MicStream:
         previous_sequence = None
         try:
             stream = sd.InputStream(
-                samplerate=self.samplerate,
+                samplerate=capture_sr,
                 channels=1,
                 dtype="float32",
-                blocksize=self.hop,
+                blocksize=capture_hop,
                 device=self.device,
                 callback=callback,
             )
@@ -213,6 +243,8 @@ class MicStream:
                         and sequence != previous_sequence + 1):
                     buf = np.zeros(0, dtype=np.float32)
                 previous_sequence = sequence
+                if capture_sr != self.samplerate:
+                    block = resample_linear(block, capture_sr, self.samplerate)
                 buf = np.concatenate([buf, block])
                 while (len(buf) >= self.window
                        and (stop_event is None or not stop_event.is_set())):
