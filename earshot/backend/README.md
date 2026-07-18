@@ -65,11 +65,14 @@ ntfy still works on any network because it only needs outbound internet.
 
 The backend runs standalone (debug events) with no ML present. When the
 sibling `../ml` package is importable and its model is downloaded, live mic
-events flow in automatically and `/teach` works.
+events flow in automatically and `/teach` works — including while detection
+is live (the ML serializes interpreter access internally).
 
-> Known issue: the ML `teach()` currently raises if called while detection is
-> live (a mode gate in the ML component). The teach endpoint needs that gate
-> removed to work with the mic running — tracked on the ML side.
+`/teach` requires exactly 3 clips (max 5 MB each), runs decode + inference
+off the event loop with a 30 s deadline, and deletes the temporary audio
+files whether teaching succeeds or fails. `/healthz` reports `ml.alive`
+(listener thread actually running) separately from `ml.available` (package
+imported), plus the last listener error if it died.
 
 ## Tests (no hardware or network)
 

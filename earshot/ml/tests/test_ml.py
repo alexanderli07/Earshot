@@ -150,3 +150,21 @@ if __name__ == "__main__":
             fn()
             print(f"ok  {name}")
     print("all tests passed")
+
+
+def test_reset_clears_streaks_after_capture_gap():
+    d = EventDetector(debounce_s=10)
+    assert d.update([obs("smoke_alarm", True)], now=0.0) == []
+    d.reset()   # dropped audio between the two windows
+    assert d.update([obs("smoke_alarm", True)], now=0.5) == []
+    fired = d.update([obs("smoke_alarm", True)], now=1.0)
+    assert [e.label for e in fired] == ["smoke_alarm"]
+
+
+def test_reset_keeps_debounce_timestamps():
+    d = EventDetector(debounce_s=10)
+    d.update([obs("smoke_alarm", True)], now=0.0)
+    d.update([obs("smoke_alarm", True)], now=0.5)   # fires
+    d.reset()   # a gap must not allow an immediate re-fire
+    d.update([obs("smoke_alarm", True)], now=1.0)
+    assert d.update([obs("smoke_alarm", True)], now=1.5) == []

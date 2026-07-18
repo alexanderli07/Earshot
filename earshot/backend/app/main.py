@@ -14,14 +14,20 @@ Endpoints:
     PUT  /rules/{label}      set on/off + urgency override
 """
 
+import asyncio
 import contextlib
 from pathlib import Path
 
-from fastapi import (FastAPI, File, Form, UploadFile, WebSocket,
-                     WebSocketDisconnect)
+from fastapi import (FastAPI, File, Form, HTTPException, UploadFile,
+                     WebSocket, WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+# Teach uploads are raw audio held in memory while processed: bound them.
+REQUIRED_CLIPS = 3
+MAX_CLIP_BYTES = 5 * 1024 * 1024          # ~2.5 min of 16 kHz 16-bit mono
+TEACH_TIMEOUT_S = 30.0
 
 from . import config
 from .core import Dispatcher, RecentEvents, Rules
@@ -31,7 +37,6 @@ from .sinks import Alerts, EventHub, push
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    import asyncio
     import httpx
 
     hub = EventHub()
@@ -56,6 +61,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        # Shutdown is coordinated: signal + join the ML listener (which owns
+        # the microphone), then release hardware and the HTTP client.
+        bridge.stop()
         alerts.close()
         await client.aclose()
 
@@ -94,9 +102,17 @@ async def ws(websocket: WebSocket):
 
 @app.get("/healthz")
 async def healthz():
+    bridge = app.state.bridge
     return {
         "status": "ok",
-        "ml": app.state.bridge.available,
+        # available = the ML package imported and constructed;
+        # alive = the listener thread is running RIGHT NOW. A dead mic or
+        # crashed worker shows alive=false instead of a false green.
+        "ml": {
+            "available": bridge.available,
+            "alive": bridge.alive,
+            "last_error": bridge.last_error,
+        },
         "gpio_mock": app.state.alerts.mock,
         "clients": app.state.hub.count,
         "ntfy": bool(config.NTFY_TOPIC),
@@ -112,28 +128,56 @@ class DebugEvent(BaseModel):
     label: str | None = None
     urgency: str | None = None
     confidence: float = 1.0
+    source: str | None = None   # e.g. "taught" to demo a learned-sound row
 
 
 @app.post("/debug/event")
 async def debug_event(body: DebugEvent | None = None):
-    """Fire a fake event through the full fan-out — the 'done when' driver."""
+    """Fire a fake event through the full fan-out — the 'done when' driver.
+
+    `accepted` means the event passed rules and was recorded; `delivery`
+    reports what each sink actually did. They are deliberately not the
+    same thing.
+    """
     body = body or DebugEvent()
-    event = await app.state.dispatcher.dispatch({
+    event, delivery = await app.state.dispatcher.dispatch({
         "label": body.label or config.DEBUG_DEFAULT["label"],
         "urgency": body.urgency or config.DEBUG_DEFAULT["urgency"],
         "confidence": body.confidence,
-        "source": "debug",
-    })
-    return {"delivered": event is not None, "event": event}
+        "source": body.source or "debug",
+    }, source_default="debug")
+    return {"accepted": event is not None, "event": event,
+            "delivery": delivery}
 
 
 @app.post("/teach")
 async def teach(name: str = Form(...), clips: list[UploadFile] = File(...)):
-    blobs = [(c.filename, await c.read()) for c in clips]
+    if len(clips) != REQUIRED_CLIPS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"teach requires exactly {REQUIRED_CLIPS} clips; "
+                   f"got {len(clips)}")
+    blobs = []
+    for clip in clips:
+        data = await clip.read()
+        if len(data) > MAX_CLIP_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"clip {clip.filename!r} exceeds "
+                       f"{MAX_CLIP_BYTES // (1024 * 1024)} MB")
+        blobs.append((clip.filename, data))
     try:
-        learned = app.state.bridge.teach(name, blobs)
+        # Decode + inference are CPU-bound: run off the event loop with a
+        # deadline so a wedged teach can't stall the API.
+        learned = await asyncio.wait_for(
+            asyncio.to_thread(app.state.bridge.teach, name, blobs),
+            timeout=TEACH_TIMEOUT_S)
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="teach timed out")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError as exc:
-        return {"ok": False, "error": str(exc)}
+        raise HTTPException(status_code=503, detail=str(exc))
     return {"ok": True, "learned": learned}
 
 
@@ -158,7 +202,10 @@ async def put_rule(label: str, body: RuleUpdate):
         return app.state.rules.set(label, enabled=body.enabled,
                                    urgency=body.urgency)
     except ValueError as exc:
-        return {"error": str(exc)}
+        raise HTTPException(status_code=422, detail=str(exc))
+    except OSError as exc:
+        raise HTTPException(status_code=503,
+                            detail=f"could not persist rule: {exc}")
 
 
 def main():
