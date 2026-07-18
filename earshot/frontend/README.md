@@ -38,10 +38,15 @@ too.
 
 | Category | Color | Meaning |
 |----------|-------|---------|
-| urgent | `#d92d20` red | smoke/fire alarm, baby cry, glass break |
-| presence | `#2e6fe8` blue | doorbell, knock — someone is here |
-| appliance | `#d97706` amber | microwave and other appliances |
-| taught | `#12805c` green | user-taught sounds |
+| urgent | `#D93036` alarm red | smoke/fire alarm, baby cry, glass break |
+| presence | `#2456D6` door blue | doorbell, knock — someone is here |
+| appliance | `#DB8B00` amber | microwave and other appliances |
+| taught | `#178A50` green | user-taught sounds |
+
+Theme matches the pitch page: cool-fog light background, white cards, ink
+text, IBM Plex Mono labels, Bricolage Grotesque headings, Atkinson
+Hyperlegible body. The wearable is the one dark (ink) surface. Google Fonts
+load when internet is available and fall back to system fonts offline.
 
 Wearable vibration patterns mirror the Pi motor patterns
 (high = strobe + long buzz, medium = one pulse, low = short tick).

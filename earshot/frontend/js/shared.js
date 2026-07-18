@@ -15,11 +15,13 @@ const CATEGORY_BY_LABEL = {
     knock: "presence",
     microwave: "appliance",
 };
+/* Colors match the pitch page: alarm red, door blue, appliance amber,
+ * taught green. */
 const CATEGORY_COLOR = {
-    urgent: "#d92d20",
-    presence: "#2e6fe8",
-    appliance: "#d97706",
-    taught: "#12805c",
+    urgent: "#D93036",
+    presence: "#2456D6",
+    appliance: "#DB8B00",
+    taught: "#178A50",
 };
 function categoryOf(ev) {
     if (ev.source === "taught")

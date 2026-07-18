@@ -3,92 +3,289 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Earshot Dashboard</title>
+<title>Earshot · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0e1116; --panel:#161b22; --line:#262d38; --input:#0e1116;
-    --text:#e6e9ee; --muted:#8a94a3;
-    --urgent:#d92d20; --presence:#2e6fe8; --appliance:#d97706; --taught:#12805c;
+  :root {
+    --silence: #ECEFF3;   /* page base: cool fog, the quiet the device lives in */
+    --card: #FFFFFF;
+    --ink: #10151C;
+    --ink-soft: #46515C;
+    --line: #D6DCE3;
+    --alarm: #D93036;     /* urgent: smoke alarm, glass */
+    --door: #2456D6;      /* someone's here: doorbell, knock */
+    --appliance: #DB8B00; /* attention: kettle, microwave, dryer */
+    --taught: #178A50;    /* learned: custom sounds */
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);
-    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  header{display:flex;align-items:center;gap:14px;padding:12px 20px;
-    border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
-  header h1{font-size:15px;margin:0;letter-spacing:.08em}
-  header .sub{color:var(--muted);font-size:12px}
-  .grow{flex:1}
-  .dot{width:8px;height:8px;border-radius:50%;background:#5c6675;display:inline-block;margin-right:6px}
-  .dot.on{background:var(--taught)}
-  .dot.off{background:var(--urgent)}
-  #host{background:var(--input);border:1px solid var(--line);color:var(--text);
-    border-radius:6px;padding:6px 9px;font-size:12px;width:170px}
-  .status{font-size:12px;color:var(--muted)}
-  main{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:16px 20px;max-width:1180px;margin:0 auto}
-  @media(max-width:860px){main{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-  .card h2{margin:0;padding:11px 16px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
-  .card .body{padding:14px 16px}
 
-  /* feed */
-  #feed{list-style:none;margin:0;padding:0;max-height:72vh;overflow:auto}
-  #feed li{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
-  #feed li:last-child{border-bottom:0}
-  .time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px;min-width:64px}
-  .label{font-weight:600;flex:1;text-transform:capitalize}
-  .chip{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-    padding:3px 8px;border-radius:4px;color:#fff}
-  .chip.urgent{background:var(--urgent)} .chip.presence{background:var(--presence)}
-  .chip.appliance{background:var(--appliance)} .chip.taught{background:var(--taught)}
-  .src{font-size:11px;color:var(--muted);min-width:64px;text-align:right}
-  .conf{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .empty{padding:28px 16px;color:var(--muted);text-align:center}
-  .empty code{color:var(--text)}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* teach */
-  label.fld{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
-  input[type=text]{width:100%;background:var(--input);border:1px solid var(--line);color:var(--text);
-    border-radius:6px;padding:8px 10px;font-size:14px}
-  .btn{border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-weight:600;font-size:13px;
-    cursor:pointer;background:var(--input);color:var(--text);width:100%}
-  .btn.primary{background:var(--taught);border-color:var(--taught);color:#fff}
-  .btn.rec{background:var(--presence);border-color:var(--presence);color:#fff}
-  .btn:disabled{opacity:.45;cursor:not-allowed}
-  .btn + .btn{margin-top:10px}
-  .marks{display:flex;gap:6px;margin:12px 0}
-  .marks i{flex:1;height:6px;border-radius:3px;background:var(--line)}
-  .marks i.done{background:var(--taught)}
-  .note{font-size:12px;color:var(--muted);margin-top:9px;min-height:16px}
-  .note.ok{color:var(--taught)} .note.err{color:var(--urgent)}
+  body {
+    background: var(--silence);
+    color: var(--ink);
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
 
-  /* rules */
-  #rules{list-style:none;margin:0;padding:0}
-  #rules li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-  #rules li:last-child{border-bottom:0}
-  #rules .rl{flex:1;font-weight:600;font-size:13px;text-transform:capitalize}
-  select{background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px;
-    padding:4px 6px;font-size:12px}
-  .sw{position:relative;width:36px;height:20px;flex:none}
-  .sw input{opacity:0;width:0;height:0}
-  .sw span{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.15s;cursor:pointer}
-  .sw span:before{content:"";position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;
-    border-radius:50%;transition:.15s}
-  .sw input:checked+span{background:var(--taught)}
-  .sw input:checked+span:before{transform:translateX(16px)}
+  :focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
+
+  /* ---------- header ---------- */
+
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto;
+    padding: 26px 24px 18px;
+  }
+
+  header h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  header .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-top: 3px;
+  }
+
+  .grow { flex: 1; }
+
+  #host {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    width: 170px;
+  }
+
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-soft); flex: none; }
+  .dot.on {
+    background: var(--taught);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .dot.off { background: var(--alarm); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(23, 138, 80, .4); }
+    50%      { box-shadow: 0 0 0 6px rgba(23, 138, 80, 0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) { .dot.on { animation: none; } }
+
+  /* ---------- layout ---------- */
+
+  main {
+    display: grid; grid-template-columns: 1fr 350px; gap: 16px;
+    max-width: 1180px; margin: 0 auto;
+    padding: 0 24px 56px;
+  }
+
+  @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 21, 28, .05);
+  }
+
+  .card h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .card .body { padding: 16px 18px; }
+
+  /* ---------- detection log ---------- */
+
+  #feed { list-style: none; max-height: 72vh; overflow: auto; padding: 2px 18px 6px; }
+
+  #feed li {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 13px 0;
+    border-top: 1px dashed var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  #feed li:first-child { border-top: none; }
+
+  .chip {
+    order: -1;
+    display: flex; align-items: center; gap: 8px; align-self: center;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    min-width: 96px;
+  }
+
+  .chip::before {
+    content: ""; width: 12px; height: 12px; border-radius: 3px; flex: none;
+  }
+
+  .chip.urgent    { color: var(--alarm); }     .chip.urgent::before    { background: var(--alarm); }
+  .chip.presence  { color: var(--door); }      .chip.presence::before  { background: var(--door); }
+  .chip.appliance { color: var(--appliance); } .chip.appliance::before { background: var(--appliance); }
+  .chip.taught    { color: var(--taught); }    .chip.taught::before    { background: var(--taught); }
+
+  .time { color: var(--ink-soft); }
+  .label { font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .conf { margin-left: auto; color: var(--ink-soft); }
+  .src { color: var(--ink-soft); }
+
+  .empty {
+    border-top: none !important;
+    color: var(--ink-soft);
+    padding: 26px 0 !important;
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif !important;
+  }
+
+  .empty code { font-family: 'IBM Plex Mono', monospace; color: var(--ink); font-size: 13px; }
+
+  /* ---------- teach ---------- */
+
+  label.fld {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+
+  input[type=text] {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+
+  .marks { display: flex; gap: 8px; margin: 14px 0; }
+
+  .marks i {
+    width: 12px; height: 12px; border-radius: 3px;
+    background: var(--silence);
+    border: 1px solid var(--line);
+  }
+
+  .marks i.done { background: var(--taught); border-color: var(--taught); }
+
+  .btn {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: var(--card);
+    color: var(--ink);
+  }
+
+  .btn.rec:hover:not(:disabled) { border-color: var(--ink-soft); }
+
+  .btn.primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #E8EDF2;
+  }
+
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn + .btn { margin-top: 10px; }
+
+  .note {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    min-height: 18px;
+  }
+
+  .note.ok { color: var(--taught); }
+  .note.err { color: var(--alarm); }
+
+  /* ---------- rules ---------- */
+
+  #rules { list-style: none; }
+
+  #rules li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--line);
+  }
+
+  #rules li:first-child { border-top: none; }
+
+  #rules .rl { flex: 1; font-weight: 700; font-size: 14px; text-transform: capitalize; }
+
+  select {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .sw { position: relative; width: 36px; height: 20px; flex: none; }
+  .sw input { opacity: 0; width: 0; height: 0; }
+  .sw span {
+    position: absolute; inset: 0;
+    background: var(--line);
+    border-radius: 999px;
+    transition: .15s;
+    cursor: pointer;
+  }
+  .sw span:before {
+    content: "";
+    position: absolute; width: 14px; height: 14px; left: 3px; top: 3px;
+    background: var(--card);
+    border-radius: 50%;
+    transition: .15s;
+  }
+  .sw input:checked + span { background: var(--taught); }
+  .sw input:checked + span:before { transform: translateX(16px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sw span, .sw span:before { transition: none; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>EARSHOT</h1><span class="sub">dashboard</span>
+  <h1>EARSHOT</h1><span class="sub">Dashboard</span>
   <div class="grow"></div>
   <input id="host" title="Pi host:port" placeholder="pi-ip:8000">
-  <span class="status"><span id="dot" class="dot"></span><span id="stat">connecting</span></span>
+  <span class="status"><span id="dot" class="dot" aria-hidden="true"></span><span id="stat">connecting</span></span>
 </header>
 
 <main>
-  <section class="card">
-    <h2>Live feed</h2>
+  <section class="card" aria-label="Live detection log">
+    <h2>Detection log</h2>
     <ul id="feed"><li class="empty" id="empty">Waiting for events. Fire one with the backend's <code>/debug/event</code>.</li></ul>
   </section>
 
@@ -98,10 +295,10 @@
       <div class="body">
         <label class="fld" for="tname">Name</label>
         <input type="text" id="tname" placeholder="e.g. kettle">
-        <div class="marks"><i id="d0"></i><i id="d1"></i><i id="d2"></i></div>
+        <div class="marks" aria-hidden="true"><i id="d0"></i><i id="d1"></i><i id="d2"></i></div>
         <button class="btn rec" id="rec">Record clip 1 of 3</button>
         <button class="btn primary" id="teach" disabled>Teach sound</button>
-        <div class="note" id="tnote"></div>
+        <div class="note" id="tnote" role="status"></div>
       </div>
     </section>
 
