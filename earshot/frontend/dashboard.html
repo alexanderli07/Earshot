@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earshot Dashboard</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#262d38; --input:#0e1116;
+    --text:#e6e9ee; --muted:#8a94a3;
+    --urgent:#d92d20; --presence:#2e6fe8; --appliance:#d97706; --taught:#12805c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:12px 20px;
+    border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  header h1{font-size:15px;margin:0;letter-spacing:.08em}
+  header .sub{color:var(--muted);font-size:12px}
+  .grow{flex:1}
+  .dot{width:8px;height:8px;border-radius:50%;background:#5c6675;display:inline-block;margin-right:6px}
+  .dot.on{background:var(--taught)}
+  .dot.off{background:var(--urgent)}
+  #host{background:var(--input);border:1px solid var(--line);color:var(--text);
+    border-radius:6px;padding:6px 9px;font-size:12px;width:170px}
+  .status{font-size:12px;color:var(--muted)}
+  main{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:16px 20px;max-width:1180px;margin:0 auto}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .card h2{margin:0;padding:11px 16px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  .card .body{padding:14px 16px}
+
+  /* feed */
+  #feed{list-style:none;margin:0;padding:0;max-height:72vh;overflow:auto}
+  #feed li{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+  #feed li:last-child{border-bottom:0}
+  .time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px;min-width:64px}
+  .label{font-weight:600;flex:1;text-transform:capitalize}
+  .chip{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 8px;border-radius:4px;color:#fff}
+  .chip.urgent{background:var(--urgent)} .chip.presence{background:var(--presence)}
+  .chip.appliance{background:var(--appliance)} .chip.taught{background:var(--taught)}
+  .src{font-size:11px;color:var(--muted);min-width:64px;text-align:right}
+  .conf{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .empty{padding:28px 16px;color:var(--muted);text-align:center}
+  .empty code{color:var(--text)}
+
+  /* teach */
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
+  input[type=text]{width:100%;background:var(--input);border:1px solid var(--line);color:var(--text);
+    border-radius:6px;padding:8px 10px;font-size:14px}
+  .btn{border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-weight:600;font-size:13px;
+    cursor:pointer;background:var(--input);color:var(--text);width:100%}
+  .btn.primary{background:var(--taught);border-color:var(--taught);color:#fff}
+  .btn.rec{background:var(--presence);border-color:var(--presence);color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn + .btn{margin-top:10px}
+  .marks{display:flex;gap:6px;margin:12px 0}
+  .marks i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+  .marks i.done{background:var(--taught)}
+  .note{font-size:12px;color:var(--muted);margin-top:9px;min-height:16px}
+  .note.ok{color:var(--taught)} .note.err{color:var(--urgent)}
+
+  /* rules */
+  #rules{list-style:none;margin:0;padding:0}
+  #rules li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  #rules li:last-child{border-bottom:0}
+  #rules .rl{flex:1;font-weight:600;font-size:13px;text-transform:capitalize}
+  select{background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px;
+    padding:4px 6px;font-size:12px}
+  .sw{position:relative;width:36px;height:20px;flex:none}
+  .sw input{opacity:0;width:0;height:0}
+  .sw span{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.15s;cursor:pointer}
+  .sw span:before{content:"";position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;
+    border-radius:50%;transition:.15s}
+  .sw input:checked+span{background:var(--taught)}
+  .sw input:checked+span:before{transform:translateX(16px)}
+</style>
+</head>
+<body>
+<header>
+  <h1>EARSHOT</h1><span class="sub">dashboard</span>
+  <div class="grow"></div>
+  <input id="host" title="Pi host:port" placeholder="pi-ip:8000">
+  <span class="status"><span id="dot" class="dot"></span><span id="stat">connecting</span></span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Live feed</h2>
+    <ul id="feed"><li class="empty" id="empty">Waiting for events. Fire one with the backend's <code>/debug/event</code>.</li></ul>
+  </section>
+
+  <div>
+    <section class="card" style="margin-bottom:16px">
+      <h2>Teach a sound</h2>
+      <div class="body">
+        <label class="fld" for="tname">Name</label>
+        <input type="text" id="tname" placeholder="e.g. kettle">
+        <div class="marks"><i id="d0"></i><i id="d1"></i><i id="d2"></i></div>
+        <button class="btn rec" id="rec">Record clip 1 of 3</button>
+        <button class="btn primary" id="teach" disabled>Teach sound</button>
+        <div class="note" id="tnote"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rules</h2>
+      <div class="body"><ul id="rules"></ul></div>
+    </section>
+  </div>
+</main>
+
+<script src="js/shared.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
