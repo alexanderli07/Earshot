@@ -39,7 +39,7 @@ The initial local corpus lives under `ml/data/alarm_demo/` and currently has:
   current negative files.
 
 The corpus is suitable for a demo, but it is small and its negatives do not yet
-cover difficult alarm-like beeps such as phones, timers, microwaves, and
+cover difficult alarm-like beeps such as phones, timers, appliance chimes, and
 doorbells. Metrics must be described as corpus results, not general real-world
 accuracy. The WAVs and generated models are local artifacts and must not be
 committed by default.

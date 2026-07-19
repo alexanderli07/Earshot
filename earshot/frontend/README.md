@@ -52,7 +52,7 @@ too.
 |----------|-------|---------|
 | urgent | `#D93036` alarm red | smoke/fire alarm, baby cry, glass break |
 | presence | `#2456D6` door blue | doorbell, knock — someone is here |
-| appliance | `#DB8B00` amber | microwave and other appliances |
+| appliance | `#DB8B00` amber | kettles and other appliances |
 | taught | `#178A50` green | user-taught sounds |
 
 Theme matches the pitch page: cool-fog light background, white cards, ink

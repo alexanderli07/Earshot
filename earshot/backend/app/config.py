@@ -46,7 +46,7 @@ ALERT_PROFILES = {
 DEFAULT_URGENCY = "medium"
 
 # Priority ranks: a lower-ranked alert never interrupts an active higher one
-# (a microwave ding must not cancel a smoke-alarm strobe).
+# (a low-priority chime must not cancel a smoke-alarm strobe).
 URGENCY_RANK = {"low": 1, "medium": 2, "high": 3}
 
 # Vibration patterns as alternating on/off seconds, starting with ON.

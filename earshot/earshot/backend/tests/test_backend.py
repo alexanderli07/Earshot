@@ -44,9 +44,9 @@ def test_recent_is_newest_first_and_bounded():
 
 def test_rules_mute_and_override():
     r = Rules(path=None)
-    ev = normalize_event({"label": "microwave", "urgency": "low"})
+    ev = normalize_event({"label": "kettle", "urgency": "low"})
     assert r.apply(ev) is not None                 # no rule -> passes
-    r.set("microwave", enabled=False)
+    r.set("kettle", enabled=False)
     assert r.apply(ev) is None                      # muted -> dropped
     r.set("doorbell", enabled=True, urgency="high")
     out = r.apply(normalize_event({"label": "doorbell", "urgency": "low"}))
@@ -90,10 +90,10 @@ def test_dispatch_muted_hits_no_sink():
         calls.append(ev)
 
     rules = Rules(path=None)
-    rules.set("microwave", enabled=False)
+    rules.set("kettle", enabled=False)
     d = Dispatcher(RecentEvents(), rules, broadcast,
                    lambda u: calls.append(u), lambda e, p: _noop())
-    out = asyncio.run(d.dispatch({"label": "microwave", "urgency": "low"}))
+    out = asyncio.run(d.dispatch({"label": "kettle", "urgency": "low"}))
     assert out is None and calls == []
 
 
