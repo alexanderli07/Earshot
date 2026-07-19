@@ -1,17 +1,20 @@
 """Earshot wearable alert unit — runs ON the Raspberry Pi itself.
 
-This is the code that has been running on the demo Pi all along (it lived
-only on the SD card until now). The Pi drives the alert hardware DIRECTLY
-on its own GPIO pins — there is no Arduino in the rig:
+The Pi drives the alert hardware DIRECTLY on its own GPIO pins — there is
+no Arduino in the rig:
 
     RGB LED  R=GPIO17  G=GPIO27  B=GPIO22   (matches backend config.py)
     Motor    GPIO18 (PWM throttle via a TB6612 driver, direction hardwired)
     Buzzer   GPIO23
 
+Color says WHICH sound (see LABEL_COLORS); urgency says HOW HARD to alert
+(blink speed, shake pattern, beeps, duration — see PROFILES). So a high-
+urgency baby cry is a furious BLUE strobe, and a low-urgency kettle is a
+lazy YELLOW blink. Unknown/taught sounds default to white.
+
 The backend's pi_alert sink POSTs {"label": ..., "urgency": ...} to
-http://<pi>:8000/alarm on every forwarded event; /stop cancels. Urgency maps
-to color/pattern/sound below, with a priority latch (a low alert can't
-interrupt an active high one) mirroring the backend's Alerts policy.
+http://<pi>:8000/alarm on every forwarded event; /stop cancels. A priority
+latch keeps a low alert from interrupting an active high one.
 
 Deployed on the Pi at /home/pi/alert_server.py under systemd
 (alert-server.service, Restart=always, WorkingDirectory=/home/pi — the
@@ -31,13 +34,26 @@ led = RGBLED(17, 27, 22)
 motor = PWMOutputDevice(18)
 buzzer = TonalBuzzer(23)
 
+# Which sound -> which color (R, G, B channels, 0 or 1).
+LABEL_COLORS = {
+    "smoke_alarm": (1, 0, 0),   # red
+    "fire_alarm":  (1, 0, 0),   # legacy alias
+    "baby_cry":    (0, 0, 1),   # blue
+    "glass_break": (0, 1, 0),   # green
+    "doorbell":    (0, 1, 1),   # cyan
+    "knock":       (1, 0, 1),   # magenta
+    "kettle":      (1, 1, 0),   # yellow
+}
+DEFAULT_COLOR = (1, 1, 1)       # white: taught/unknown sounds
+
+# How hard to alert, by urgency.
 PROFILES = {
-    "high":   {"rank": 3, "color": (1, 0, 0), "led": (0.10, 0.10),
-               "motor": (0.60, 0.15), "beep": True,  "seconds": 20},
-    "medium": {"rank": 2, "color": (1, 1, 0), "led": (0.45, 0.25),
-               "motor": (0.30, 0.50), "beep": False, "seconds": 8},
-    "low":    {"rank": 1, "color": (0, 0, 1), "led": (0.20, 0.60),
-               "motor": (0.12, 2.00), "beep": False, "seconds": 4},
+    "high":   {"rank": 3, "led": (0.10, 0.10), "motor": (0.60, 0.15),
+               "beep": True,  "seconds": 20},
+    "medium": {"rank": 2, "led": (0.45, 0.25), "motor": (0.30, 0.50),
+               "beep": False, "seconds": 8},
+    "low":    {"rank": 1, "led": (0.20, 0.60), "motor": (0.12, 2.00),
+               "beep": False, "seconds": 4},
 }
 
 state = {"until": 0, "profile": PROFILES["high"]}
@@ -85,7 +101,9 @@ class AlertHandler(BaseHTTPRequestHandler):
                     body = json.loads(self.rfile.read(length))
                 except ValueError:
                     pass
+            label = (body.get("label") or "smoke_alarm").lower()
             urgency = body.get("urgency") or "high"
+            color = LABEL_COLORS.get(label, DEFAULT_COLOR)
             profile = PROFILES.get(urgency, PROFILES["medium"])
             if active() and profile["rank"] < state["profile"]["rank"]:
                 self.send_response(200); self.end_headers()
@@ -94,10 +112,10 @@ class AlertHandler(BaseHTTPRequestHandler):
             state["profile"] = profile
             state["until"] = time.time() + profile["seconds"]
             on, off = profile["led"]
-            led.blink(on_time=on, off_time=off, on_color=profile["color"],
+            led.blink(on_time=on, off_time=off, on_color=color,
                       n=int(profile["seconds"] / (on + off)))
             self.send_response(200); self.end_headers()
-            self.wfile.write(f"alerting:{urgency}\n".encode())
+            self.wfile.write(f"alerting:{label}:{urgency}\n".encode())
         elif self.path == "/stop":
             state["until"] = 0
             led.off()
@@ -108,5 +126,5 @@ class AlertHandler(BaseHTTPRequestHandler):
     do_GET = do_POST
 
 
-print("Alert server on 8000 - urgency-aware: high=red, medium=yellow, low=blue")
+print("Alert server on 8000 - color = which sound, urgency = how hard")
 HTTPServer(("0.0.0.0", 8000), AlertHandler).serve_forever()
