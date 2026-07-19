@@ -60,6 +60,19 @@
 
   .grow { flex: 1; }
 
+  .auth {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .08em;
+    color: var(--ink-soft);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .auth a, .auth button {
+    font-family: inherit; font-size: 11px; letter-spacing: .08em;
+    color: var(--door); background: none; border: 0; padding: 0;
+    cursor: pointer; text-decoration: none; text-transform: uppercase;
+  }
+  .auth .who { text-transform: none; color: var(--ink); }
+
   #host {
     font-family: 'IBM Plex Mono', monospace;
     background: var(--card);
@@ -288,6 +301,7 @@
   </svg>
   <h1>EARSHOT</h1><span class="sub">Dashboard</span>
   <div class="grow"></div>
+  <span id="auth" class="auth"></span>
   <input id="host" title="Pi host:port" placeholder="pi-ip:8000">
   <span class="status"><span id="dot" class="dot" aria-hidden="true"></span><span id="stat">connecting</span></span>
 </header>

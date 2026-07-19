@@ -111,6 +111,45 @@ imported), plus engine, listener, asynchronous-dispatch, or stop-timeout
 errors. `smoke_alarm` and every configured event label are reserved from
 both the CLI and direct/backend teach API.
 
+## Per-user accounts (MongoDB, optional)
+
+Login + per-user rules and preferences live in MongoDB. **Auth is disabled
+until `EARSHOT_MONGO_URI` is set**, so the demo runs with zero Mongo and
+nothing here changes unless you opt in:
+
+```bash
+export EARSHOT_MONGO_URI=mongodb://localhost:27017   # enable accounts
+export EARSHOT_MONGO_DB=earshot                       # optional (default)
+export EARSHOT_COOKIE_SECURE=1                         # only behind HTTPS
+```
+
+Endpoints (all 503 when auth is off):
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/auth/register` | create account + log in |
+| POST | `/auth/login` | log in (sets an httpOnly session cookie) |
+| POST | `/auth/logout` | log out (stamps the session's logout time) |
+| GET  | `/auth/me` | current user |
+| GET  | `/auth/sessions` | this user's login/logout history |
+| GET/PUT | `/me/rules`, `/me/rules/{label}` | per-user rule overrides |
+| GET/PUT | `/me/prefs` | per-user preferences (own ntfy topic, shown categories) |
+
+Security posture:
+
+- Passwords are **bcrypt**-hashed; plaintext is never stored or logged.
+- Session tokens are random 256-bit values in an **httpOnly** cookie; only
+  their SHA-256 hash is stored, so a DB leak can't be replayed as a session.
+- **Only the per-user (`/me/*`) and account (`/auth/*`) surface is gated.**
+  The live alert path — `/ws`, `/debug/event`, device `/rules` — stays open:
+  a login must never stand between a user and a smoke alarm.
+- No HTTPS on the hotspot means credentials cross the local network in
+  cleartext. Acceptable on a private hotspot demo; set `EARSHOT_COOKIE_SECURE`
+  and terminate TLS for anything beyond that.
+
+Collections: `users`, `sessions` (the login/logout record), `user_rules`,
+`user_prefs`.
+
 ## Tests (no hardware or network)
 
 ```bash
@@ -118,5 +157,7 @@ python -m pip install pytest
 python -m pytest tests/ -q
 ```
 
-The tests inject fake ML engines and sinks. They do not open a microphone,
-load a model, drive GPIO, or send network notifications.
+The tests inject fake ML engines and sinks, and run the real Mongo store code
+against an in-memory `mongomock` database (`pip install mongomock-motor`).
+They do not open a microphone, load a model, drive GPIO, send notifications,
+or need a running `mongod`.
