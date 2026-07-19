@@ -3,13 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Earshot · Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='9' width='6' height='14' rx='3' fill='%23D93036'/><rect x='8.7' y='4' width='6' height='24' rx='3' fill='%232456D6'/><rect x='17.3' y='7' width='6' height='18' rx='3' fill='%23DB8B00'/><rect x='26' y='11' width='6' height='10' rx='3' fill='%23178A50'/></svg>">
+<script>
+  /* Apply the saved (or OS-preferred) theme before first paint — no flash. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem("earshot_theme"); } catch (e) { /* file:// */ }
+    var theme = saved ||
+      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark" : "light");
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
+    color-scheme: light;
     --silence: #ECEFF3;   /* page base: cool fog, the quiet the device lives in */
     --card: #FFFFFF;
     --ink: #10151C;
@@ -21,6 +34,19 @@
     --taught: #178A50;    /* learned: custom sounds */
   }
 
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --silence: #0E1319;
+    --card: #171E27;
+    --ink: #E7ECF2;
+    --ink-soft: #9AA6B2;
+    --line: #2A3441;
+    --alarm: #F0555B;
+    --door: #6E93F0;
+    --appliance: #F0A63C;
+    --taught: #3DBD7D;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -30,6 +56,7 @@
     font-size: 15px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    transition: background .2s ease, color .2s ease;
   }
 
   :focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
@@ -73,6 +100,18 @@
   }
   .auth .who { text-transform: none; color: var(--ink); }
 
+  #theme {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  #theme:hover { color: var(--ink); border-color: var(--ink-soft); }
+
   #host {
     font-family: 'IBM Plex Mono', monospace;
     background: var(--card);
@@ -111,6 +150,7 @@
     display: grid; grid-template-columns: 1fr 350px; gap: 16px;
     max-width: 1180px; margin: 0 auto;
     padding: 0 24px 56px;
+    align-items: start;
   }
 
   @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
@@ -121,6 +161,7 @@
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(16, 21, 28, .05);
+    transition: background .2s ease, border-color .2s ease;
   }
 
   .card h2 {
@@ -134,9 +175,50 @@
 
   .card .body { padding: 16px 18px; }
 
+  .stack > .card + .card { margin-top: 16px; }
+
+  /* ---------- stats ---------- */
+
+  .stats { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+
+  .tiles {
+    flex: 1; min-width: 250px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+
+  .tile {
+    background: var(--silence);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .tile .tv {
+    display: block;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800; font-size: 24px; letter-spacing: -0.01em;
+    text-transform: capitalize;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .tile .tk {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .chart { display: flex; align-items: center; gap: 16px; }
+
+  .legend { list-style: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .legend li { display: flex; align-items: center; gap: 7px; padding: 2px 0; color: var(--ink-soft); }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
   /* ---------- detection log ---------- */
 
-  #feed { list-style: none; max-height: 72vh; overflow: auto; padding: 2px 18px 6px; }
+  #feed { list-style: none; max-height: 60vh; overflow: auto; padding: 2px 18px 6px; }
+
+  #feed::-webkit-scrollbar { width: 8px; }
+  #feed::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 
   #feed li {
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
@@ -153,21 +235,24 @@
     display: flex; align-items: center; gap: 8px; align-self: center;
     font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
     min-width: 96px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 10%, transparent);
   }
 
   .chip::before {
-    content: ""; width: 12px; height: 12px; border-radius: 3px; flex: none;
+    content: ""; width: 10px; height: 10px; border-radius: 3px; flex: none;
+    background: currentColor;
   }
 
-  .chip.urgent    { color: var(--alarm); }     .chip.urgent::before    { background: var(--alarm); }
-  .chip.presence  { color: var(--door); }      .chip.presence::before  { background: var(--door); }
-  .chip.appliance { color: var(--appliance); } .chip.appliance::before { background: var(--appliance); }
-  .chip.taught    { color: var(--taught); }    .chip.taught::before    { background: var(--taught); }
+  .chip.urgent    { color: var(--alarm); }
+  .chip.presence  { color: var(--door); }
+  .chip.appliance { color: var(--appliance); }
+  .chip.taught    { color: var(--taught); }
 
-  .time { color: var(--ink-soft); }
+  .time { color: var(--ink-soft); min-width: 68px; }
   .label { font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
   .conf { margin-left: auto; color: var(--ink-soft); }
-  .src { color: var(--ink-soft); }
 
   .empty {
     border-top: none !important;
@@ -227,7 +312,7 @@
   .btn.primary {
     background: var(--ink);
     border-color: var(--ink);
-    color: #E8EDF2;
+    color: var(--silence);
   }
 
   .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -288,6 +373,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .sw span, .sw span:before { transition: none; }
+    body, .card { transition: none; }
   }
 </style>
 </head>
@@ -302,18 +388,37 @@
   <h1>EARSHOT</h1><span class="sub">Dashboard</span>
   <div class="grow"></div>
   <span id="auth" class="auth"></span>
+  <button id="theme" type="button" aria-label="Toggle color theme">dark mode</button>
   <input id="host" title="Pi host:port" placeholder="pi-ip:8000">
   <span class="status"><span id="dot" class="dot" aria-hidden="true"></span><span id="stat">connecting</span></span>
 </header>
 
 <main>
-  <section class="card" aria-label="Live detection log">
-    <h2>Detection log</h2>
-    <ul id="feed"><li class="empty" id="empty">Waiting for events. Fire one with the backend's <code>/debug/event</code>.</li></ul>
-  </section>
+  <div class="stack">
+    <section class="card" aria-label="Statistics">
+      <h2>At a glance</h2>
+      <div class="body stats">
+        <div class="tiles">
+          <div class="tile"><span class="tv" id="stAlerts">0</span><span class="tk">alerts today</span></div>
+          <div class="tile"><span class="tv" id="stGap">—</span><span class="tk">avg time between</span></div>
+          <div class="tile"><span class="tv" id="stConf">—</span><span class="tk">avg certainty</span></div>
+          <div class="tile"><span class="tv" id="stTop">—</span><span class="tk">most heard</span></div>
+        </div>
+        <div class="chart">
+          <svg id="donut" viewBox="0 0 140 140" width="132" height="132" role="img" aria-label="Alerts by category"></svg>
+          <ul class="legend" id="legend"></ul>
+        </div>
+      </div>
+    </section>
 
-  <div>
-    <section class="card" style="margin-bottom:16px">
+    <section class="card" aria-label="Live detection log">
+      <h2>Detection log</h2>
+      <ul id="feed"><li class="empty" id="empty">Waiting for events. Fire one with the backend's <code>/debug/event</code>.</li></ul>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
       <h2>Teach a sound</h2>
       <div class="body">
         <label class="fld" for="tname">Name</label>

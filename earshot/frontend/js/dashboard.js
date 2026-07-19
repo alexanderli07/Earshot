@@ -14,6 +14,20 @@
     const statusDot = el("dot");
     const statusText = el("stat");
     const feedList = el("feed");
+    /* ---- theme ---- */
+    const themeButton = el("theme");
+    function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        try {
+            localStorage.setItem("earshot_theme", theme);
+        }
+        catch { /* file:// */ }
+        themeButton.textContent = theme === "dark" ? "light mode" : "dark mode";
+    }
+    themeButton.addEventListener("click", () => {
+        applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    });
+    applyTheme(document.documentElement.dataset.theme || "light");
     /* ---- auth state ---- */
     const authEl = el("auth");
     let loggedIn = false;
@@ -89,18 +103,137 @@
         label.textContent = prettyLabel(ev.label);
         const confidence = document.createElement("span");
         confidence.className = "conf";
-        confidence.textContent = `${Math.round((ev.confidence ?? 1) * 100)}%`;
-        const source = document.createElement("span");
-        source.className = "src";
-        source.textContent = ev.source ?? "";
+        confidence.textContent = `${Math.round((ev.confidence ?? 1) * 100)}% certainty`;
         const chip = document.createElement("span");
         chip.className = `chip ${category}`;
         chip.textContent = category;
-        row.append(time, label, confidence, source, chip);
+        row.append(time, label, confidence, chip);
         feedList.prepend(row);
         while (feedList.children.length > FEED_LIMIT)
             feedList.lastChild?.remove();
+        allEvents.push(ev);
+        renderStats();
     }
+    /* ---- stats: tiles + category donut, recomputed on every event ---- */
+    const STAT_CATEGORIES = ["urgent", "presence", "appliance", "taught"];
+    const CATEGORY_CSS_VAR = {
+        urgent: "--alarm",
+        presence: "--door",
+        appliance: "--appliance",
+        taught: "--taught",
+    };
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const allEvents = [];
+    const donutSvg = el("donut");
+    const legendList = el("legend");
+    function formatGap(seconds) {
+        if (!isFinite(seconds))
+            return "—";
+        if (seconds < 90)
+            return `${Math.round(seconds)}s`;
+        if (seconds < 5400)
+            return `${Math.round(seconds / 60)}m`;
+        return `${(seconds / 3600).toFixed(1)}h`;
+    }
+    function renderStats() {
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000;
+        const today = allEvents.filter((e) => (e.timestamp ?? 0) >= midnight);
+        el("stAlerts").textContent = String(today.length);
+        const times = allEvents
+            .map((e) => e.timestamp ?? 0)
+            .filter(Boolean)
+            .sort((a, b) => a - b);
+        const gap = times.length >= 2
+            ? (times[times.length - 1] - times[0]) / (times.length - 1)
+            : NaN;
+        el("stGap").textContent = formatGap(gap);
+        const confs = allEvents
+            .map((e) => e.confidence)
+            .filter((c) => typeof c === "number");
+        el("stConf").textContent = confs.length
+            ? `${Math.round((confs.reduce((s, c) => s + c, 0) / confs.length) * 100)}%`
+            : "—";
+        const counts = new Map();
+        for (const e of allEvents) {
+            const key = prettyLabel(e.label);
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        let top = "—";
+        let best = 0;
+        for (const [label, n] of counts) {
+            if (n > best) {
+                best = n;
+                top = label;
+            }
+        }
+        el("stTop").textContent = top;
+        renderDonut();
+    }
+    function donutCircle(radius, stroke) {
+        const circle = document.createElementNS(SVG_NS, "circle");
+        circle.setAttribute("cx", "70");
+        circle.setAttribute("cy", "70");
+        circle.setAttribute("r", String(radius));
+        circle.setAttribute("fill", "none");
+        circle.setAttribute("stroke", stroke);
+        circle.setAttribute("stroke-width", "16");
+        return circle;
+    }
+    function renderDonut() {
+        const byCategory = { urgent: 0, presence: 0, appliance: 0, taught: 0 };
+        for (const e of allEvents)
+            byCategory[categoryOf(e)] += 1;
+        const total = allEvents.length;
+        const radius = 52;
+        const circumference = 2 * Math.PI * radius;
+        donutSvg.innerHTML = "";
+        legendList.innerHTML = "";
+        donutSvg.appendChild(donutCircle(radius, "var(--line)"));
+        let offset = 0;
+        for (const category of STAT_CATEGORIES) {
+            const n = byCategory[category];
+            if (!n)
+                continue;
+            const fraction = n / total;
+            const segment = donutCircle(radius, `var(${CATEGORY_CSS_VAR[category]})`);
+            segment.setAttribute("stroke-dasharray", `${fraction * circumference} ${circumference}`);
+            segment.setAttribute("stroke-dashoffset", String(-offset * circumference));
+            segment.setAttribute("transform", "rotate(-90 70 70)");
+            donutSvg.appendChild(segment);
+            offset += fraction;
+            const item = document.createElement("li");
+            const swatch = document.createElement("i");
+            swatch.style.background = `var(${CATEGORY_CSS_VAR[category]})`;
+            const text = document.createElement("span");
+            text.textContent = `${category} · ${n}`;
+            item.append(swatch, text);
+            legendList.appendChild(item);
+        }
+        const center = document.createElementNS(SVG_NS, "text");
+        center.setAttribute("x", "70");
+        center.setAttribute("y", "67");
+        center.setAttribute("text-anchor", "middle");
+        center.setAttribute("fill", "var(--ink)");
+        center.setAttribute("style", "font: 800 26px 'Bricolage Grotesque', sans-serif;");
+        center.textContent = String(total);
+        const centerSub = document.createElementNS(SVG_NS, "text");
+        centerSub.setAttribute("x", "70");
+        centerSub.setAttribute("y", "86");
+        centerSub.setAttribute("text-anchor", "middle");
+        centerSub.setAttribute("fill", "var(--ink-soft)");
+        centerSub.setAttribute("style", "font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: .12em; text-transform: uppercase;");
+        centerSub.textContent = total === 1 ? "alert" : "alerts";
+        donutSvg.append(center, centerSub);
+        if (!total) {
+            const item = document.createElement("li");
+            const text = document.createElement("span");
+            text.textContent = "no alerts yet";
+            item.append(text);
+            legendList.appendChild(item);
+        }
+    }
+    renderStats();
     /* ---- socket ---- */
     const socket = new EventSocket(() => hostInput.value, {
         onEvent: addEventRow,
@@ -115,6 +248,8 @@
         saveHost(hostInput.value);
         seenIds.clear();
         feedList.innerHTML = "";
+        allEvents.length = 0;
+        renderStats();
         socket.restart();
     });
     socket.connect();
