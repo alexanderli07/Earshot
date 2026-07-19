@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "tomli; python_version < '3.11'"]
+train = ["scikit-learn>=1.7,<2"]
 
 [project.scripts]
 earshot = "earshot_ml.cli:main"

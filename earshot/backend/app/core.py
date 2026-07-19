@@ -6,6 +6,7 @@ fan-out can be unit-tested with fakes (no FastAPI, GPIO, or network).
 
 import asyncio
 import json
+import math
 import os
 import tempfile
 import time
@@ -32,13 +33,19 @@ def normalize_event(raw, source_default="pretrained"):
     if urgency not in _VALID_URGENCY:
         urgency = config.DEFAULT_URGENCY
     label = str(raw.get("label", "unknown"))
+    # NaN/inf must not reach JSON clients; clamp confidence into 0..1.
     try:
-        confidence = round(float(raw.get("confidence", 1.0)), 3)
+        confidence = float(raw.get("confidence", 1.0))
     except (TypeError, ValueError):
         confidence = 1.0
+    if not math.isfinite(confidence):
+        confidence = 1.0
+    confidence = round(min(1.0, max(0.0, confidence)), 3)
     try:
         timestamp = float(raw.get("timestamp", time.time()))
     except (TypeError, ValueError):
+        timestamp = time.time()
+    if not math.isfinite(timestamp):
         timestamp = time.time()
     return {
         "id": f"evt_{next(_ids)}",
@@ -92,9 +99,13 @@ class Rules:
     def set(self, label, enabled=True, urgency=None):
         if urgency is not None and urgency not in _VALID_URGENCY:
             raise ValueError(f"invalid urgency {urgency!r}")
-        self._rules[str(label)] = {"enabled": bool(enabled), "urgency": urgency}
-        self._save()
-        return self._rules[str(label)]
+        # Copy-on-write: persist a candidate first, swap live state only on
+        # success, so memory never diverges from disk after a failed save.
+        candidate = dict(self._rules)
+        candidate[str(label)] = {"enabled": bool(enabled), "urgency": urgency}
+        self._save(candidate)
+        self._rules = candidate
+        return dict(candidate[str(label)])
 
     def apply(self, event):
         """Return the event (possibly with overridden urgency), or None if the
@@ -108,7 +119,7 @@ class Rules:
             event = {**event, "urgency": rule["urgency"]}
         return event
 
-    def _save(self):
+    def _save(self, rules):
         if self.path is None:
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -116,7 +127,7 @@ class Rules:
         fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
         try:
             with os.fdopen(fd, "w") as f:
-                json.dump(self._rules, f, indent=2)
+                json.dump(rules, f, indent=2)
             os.replace(tmp, self.path)
         except BaseException:
             try:
@@ -147,20 +158,37 @@ class Dispatcher:
         self._push = push
 
     async def dispatch(self, raw, source_default="pretrained"):
-        """The switchboard. Returns the delivered event, or None if muted."""
+        """The switchboard. Returns (event, delivery) — event is None when
+        the sound is muted by a rule; delivery reports each sink's actual
+        outcome instead of pretending success (accepted != delivered)."""
         event = self.rules.apply(normalize_event(raw, source_default))
         if event is None:
-            return None
+            return None, None
         self.recent.add(event)
         profile = config.ALERT_PROFILES.get(
             event["urgency"], config.ALERT_PROFILES[config.DEFAULT_URGENCY])
         loop = asyncio.get_running_loop()
         # Fire all sinks concurrently for the <1 s budget; return_exceptions so
         # one dead phone / loose wire never takes down the others.
-        await asyncio.gather(
+        results = await asyncio.gather(
             self._broadcast(event),
             loop.run_in_executor(None, self._alert, event["urgency"]),
             self._push(event, profile),
             return_exceptions=True,
         )
-        return event
+        ws_result, gpio_result, push_result = results
+        delivery = {
+            "websocket": (
+                {"ok": ws_result > 0, "clients": ws_result}
+                if isinstance(ws_result, int)
+                else {"ok": False, "error": str(ws_result)}),
+            "gpio": (
+                {"ok": gpio_result == "queued", "detail": gpio_result}
+                if isinstance(gpio_result, str)
+                else {"ok": False, "error": str(gpio_result)}),
+            "ntfy": (
+                {"ok": push_result} if isinstance(push_result, bool)
+                else {"configured": False} if push_result is None
+                else {"ok": False, "error": str(push_result)}),
+        }
+        return event, delivery

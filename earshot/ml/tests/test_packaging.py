@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -43,6 +45,38 @@ def test_pyproject_declares_package_and_cli():
     )
 
 
+def test_training_extra_is_optional_and_runtime_stays_lightweight():
+    data = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    assert any(
+        item.startswith("scikit-learn>=1.7")
+        for item in data["project"]["optional-dependencies"]["train"]
+    )
+    assert all(
+        not item.startswith("scikit-learn")
+        for item in data["project"]["dependencies"]
+    )
+
+
+def test_alarm_training_import_does_not_require_scikit_learn():
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "sys.modules['sklearn'] = None; "
+                "import earshot_ml.alarm_training"
+            ),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+
+
 @pytest.mark.parametrize(
     ("machine", "python_version", "expected_backend"),
     [
@@ -65,3 +99,13 @@ def test_gitignore_excludes_python_build_artifacts():
     }
 
     assert {"ml/build/", "ml/*.egg-info/"} <= entries
+
+
+def test_gitignore_excludes_local_alarm_data_and_reports():
+    entries = {
+        line.strip()
+        for line in (ROOT.parent / ".gitignore").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+    assert {"ml/data/", "ml/models/*_report.json"} <= entries

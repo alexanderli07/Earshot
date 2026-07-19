@@ -5,6 +5,10 @@ endpoint) — becomes **light, buzz, phone push, and a dashboard row** within
 1 second. Broadcasts over WebSocket, pushes to phones via ntfy, drives the
 RGB LED + vibration motor over GPIO.
 
+This is demo software, not a certified alarm or life-safety service. Do not
+expose its unauthenticated debug, teach, or rule endpoints to an untrusted
+network, and never use it to replace approved alarms or emergency procedures.
+
 Files: [config.py](app/config.py) (pins, ntfy, alert profiles — the tuning
 knobs), [core.py](app/core.py) (events | recent | rules | dispatch),
 [sinks.py](app/sinks.py) (WebSocket | GPIO | ntfy), [ml_bridge.py](app/ml_bridge.py)
@@ -13,11 +17,25 @@ knobs), [core.py](app/core.py) (events | recent | rules | dispatch),
 ## Run
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -e ../ml
+
+export EARSHOT_MODEL_DIR="$HOME/.local/share/earshot/models"
+mkdir -p "$EARSHOT_MODEL_DIR"
+earshot download
+python -m pip check
+
 export EARSHOT_NTFY_TOPIC=earshot-<pick-something-unguessable>   # optional; push off if unset
 python -m app.main            # serves on 0.0.0.0:8000
 ```
+
+Use one environment for the backend and ML runtime. Installing only
+`requirements.txt` leaves NumPy, sounddevice, and LiteRT unavailable and makes
+`/healthz` correctly report ML as unavailable. The Pi does not need the
+Windows-only scikit-learn training extra.
 
 Off a Pi, GPIO auto-falls back to a logging mock, so it runs on a laptop for
 development. On the Pi it drives the real pins (R=17, G=27, B=22, motor=18).
@@ -63,17 +81,42 @@ ntfy still works on any network because it only needs outbound internet.
 
 ## ML integration
 
+A compatible trained head emits one shared event:
+
+```json
+{
+  "label": "fire_smoke_alarm",
+  "urgency": "high",
+  "source": "trained"
+}
+```
+
+The source is preserved through dispatch, and high urgency receives the top
+GPIO/push priority. `fire_smoke_alarm` is a separate rule from the legacy
+`smoke_alarm` and `fire_alarm` fallback labels. Existing saved rules are not
+automatically migrated because guessing the intended enabled/urgency state
+could suppress an alarm. Configure the new rule explicitly after deploying a
+head.
+
 The backend runs standalone (debug events) with no ML present. When the
 sibling `../ml` package is importable and its model is downloaded, live mic
-events flow in automatically and `/teach` works.
+events flow in automatically and `/teach` works — including while detection
+is live (the ML serializes interpreter access internally).
 
-> Known issue: the ML `teach()` currently raises if called while detection is
-> live (a mode gate in the ML component). The teach endpoint needs that gate
-> removed to work with the mic running — tracked on the ML side.
+`/teach` requires exactly 3 clips (max 5 MB each), runs decode + inference
+off the event loop with a 30 s deadline, and deletes the temporary audio
+files whether teaching succeeds or fails. `/healthz` reports `ml.alive`
+(listener thread actually running) separately from `ml.available` (package
+imported), plus engine, listener, asynchronous-dispatch, or stop-timeout
+errors. `fire_smoke_alarm` and every configured event label are reserved from
+both the CLI and direct/backend teach API.
 
 ## Tests (no hardware or network)
 
 ```bash
-pip install pytest
+python -m pip install pytest
 python -m pytest tests/ -q
 ```
+
+The tests inject fake ML engines and sinks. They do not open a microphone,
+load a model, drive GPIO, or send network notifications.

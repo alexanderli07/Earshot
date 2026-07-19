@@ -8,5 +8,7 @@ ml/models/*.tflite
 ml/models/*.csv
 ml/models/*.npz
 ml/models/*.part
+ml/data/
+ml/models/*_report.json
 .DS_Store
 __MACOSX/

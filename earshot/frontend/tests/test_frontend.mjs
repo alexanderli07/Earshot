@@ -36,15 +36,27 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(readFileSync(join(here, "..", "js", "shared.js"), "utf8"),
                 sandbox);
+const dashboardSource = readFileSync(
+  join(here, "..", "js", "dashboard.js"), "utf8",
+);
 
 /* ---- categoryOf: palette mapping ---- */
 const c = (ev) => sandbox.categoryOf(ev);
 check("smoke_alarm is urgent", c({ label: "smoke_alarm", urgency: "high" }) === "urgent");
+check(
+  "fire_smoke_alarm stays urgent when urgency is low",
+  c({ label: "fire_smoke_alarm", source: "trained", urgency: "low" }) === "urgent",
+);
 check("doorbell is presence", c({ label: "doorbell", urgency: "medium" }) === "presence");
 check("microwave is appliance", c({ label: "microwave", urgency: "low" }) === "appliance");
 check("taught source wins", c({ label: "kettle", source: "taught", urgency: "high" }) === "taught");
 check("unknown high is urgent", c({ label: "mystery", urgency: "high" }) === "urgent");
 check("wsUrl shape", sandbox.wsUrl("pi:8000") === "ws://pi:8000/ws");
+const baseSounds = /const BASE_SOUNDS = \[([\s\S]*?)\];/.exec(dashboardSource)?.[1] ?? "";
+check(
+  "fire_smoke_alarm has a base rule",
+  baseSounds.includes('"fire_smoke_alarm"'),
+);
 
 /* ---- WAV roundtrip: encodeWav -> ML python loader ---- */
 const rate = 48000, seconds = 1.0, freq = 440;
@@ -63,7 +75,11 @@ const tmp = mkdtempSync(join(tmpdir(), "earshot-fe-"));
 const wavPath = join(tmp, "tone.wav");
 writeFileSync(wavPath, wavBytes);
 try {
-  const py = join(repo, "ml", ".venv", "bin", "python");
+  const py = process.env.EARSHOT_TEST_PYTHON ?? (
+    process.platform === "win32"
+      ? join(repo, "ml", ".venv", "Scripts", "python.exe")
+      : join(repo, "ml", ".venv", "bin", "python")
+  );
   const out = execFileSync(py, ["-c", `
 import sys; sys.path.insert(0, ${JSON.stringify(join(repo, "ml"))}
 )

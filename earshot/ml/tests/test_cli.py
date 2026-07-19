@@ -1,18 +1,31 @@
 import builtins
 import hashlib
 from pathlib import Path
+import subprocess
+import sys
+from types import SimpleNamespace
 import wave
 
 import numpy as np
 import pytest
 
-from earshot_ml import cli, core, pipeline
+from earshot_ml import alarm_model, cli, core, pipeline
 from earshot_ml.artifacts import Artifact
 from earshot_ml.core import EarshotML, TeachStore
 
 
 ROOT = Path(__file__).resolve().parent.parent
-COMMANDS = ("download", "top5", "run", "teach", "sounds", "forget")
+COMMANDS = (
+    "download",
+    "top5",
+    "run",
+    "teach",
+    "sounds",
+    "forget",
+    "collect",
+    "train-alarm",
+    "evaluate-alarm",
+)
 TFLITE_BACKENDS = ("ai_edge_litert", "tensorflow", "tflite_runtime")
 
 
@@ -85,6 +98,607 @@ def test_main_help_lists_all_commands(capsys):
     help_text = capsys.readouterr().out
     for command in COMMANDS:
         assert command in help_text
+
+
+def test_help_does_not_import_sklearn(monkeypatch):
+    real_import = builtins.__import__
+
+    def guarded(name, *args, **kwargs):
+        if name.startswith("sklearn"):
+            pytest.fail("help imported training dependency")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded)
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["--help"])
+
+    assert exc_info.value.code == 0
+
+
+def test_cold_process_help_works_when_sklearn_is_unavailable():
+    script = (
+        "import importlib.abc\n"
+        "import runpy\n"
+        "import sys\n"
+        "class BlockSklearn(importlib.abc.MetaPathFinder):\n"
+        "    def find_spec(self, fullname, path=None, target=None):\n"
+        "        if fullname == 'sklearn' or fullname.startswith('sklearn.'):\n"
+        "            raise ModuleNotFoundError('blocked sklearn')\n"
+        "        return None\n"
+        "sys.meta_path.insert(0, BlockSklearn())\n"
+        "try:\n"
+        "    import sklearn\n"
+        "except ModuleNotFoundError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise AssertionError('sklearn blocker did not engage')\n"
+        "sys.argv = ['earshot', '--help']\n"
+        "runpy.run_module('earshot_ml.cli', run_name='__main__')\n"
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "One CLI for Earshot" in completed.stdout
+    for command in COMMANDS:
+        assert command in completed.stdout
+
+
+def test_collect_parser_defaults():
+    args = cli._build_parser().parse_args(["collect", "alarm"])
+
+    assert args.label == "alarm"
+    assert args.wavs == []
+    assert args.record == 0
+    assert args.seconds == 5.0
+    assert args.device is None
+    assert args.data_dir == cli.config.ALARM_DATA_DIR
+    assert args.source_group is None
+
+
+def test_train_alarm_parser_defaults():
+    args = cli._build_parser().parse_args(["train-alarm"])
+
+    assert args.data_dir == cli.config.ALARM_DATA_DIR
+    assert args.output == cli.config.ALARM_MODEL_PATH
+    assert args.seed == 0
+
+
+def test_evaluate_alarm_parser_defaults():
+    args = cli._build_parser().parse_args(["evaluate-alarm"])
+
+    assert args.data_dir == cli.config.ALARM_DATA_DIR
+    assert args.model == cli.config.ALARM_MODEL_PATH
+
+
+def test_collect_combines_files_and_recordings(monkeypatch, tmp_path, capsys):
+    imported = []
+    captured = []
+    monkeypatch.setattr(
+        cli,
+        "collect_files",
+        lambda label, paths, data_dir, source_group=None: (
+            imported.extend(paths) or (tmp_path / "a.wav",)
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cli,
+        "collect_recordings",
+        lambda label, count, seconds, data_dir, **kwargs: (
+            captured.append((label, count, seconds, kwargs))
+            or (tmp_path / "b.wav",)
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(builtins, "input", lambda _prompt: "")
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    cli.main([
+        "collect",
+        "alarm",
+        "source.wav",
+        "--record",
+        "1",
+        "--seconds",
+        "1",
+        "--device",
+        "1",
+        "--data-dir",
+        str(tmp_path),
+    ])
+
+    assert imported == [Path("source.wav")]
+    assert len(captured) == 1
+    assert captured[0][1:3] == (1, 1.0)
+    assert captured[0][3]["device"] == 1
+    assert "stored 2 clips" in capsys.readouterr().out
+
+
+def test_collect_files_only_skips_microphone(monkeypatch, tmp_path, capsys):
+    received = []
+    stored = tmp_path / "alarm" / "source.wav"
+    monkeypatch.setattr(
+        cli,
+        "collect_files",
+        lambda label, paths, data_dir, source_group=None: (
+            received.append((label, tuple(paths), data_dir, source_group))
+            or (stored,)
+        ),
+    )
+    monkeypatch.setattr(cli, "collect_recordings", _forbid_model_use)
+    monkeypatch.setattr(cli, "record", _forbid_model_use)
+
+    cli.main([
+        "collect",
+        "alarm",
+        "source.wav",
+        "--data-dir",
+        str(tmp_path),
+        "--source-group",
+        "office",
+    ])
+
+    assert received == [(
+        "alarm",
+        (Path("source.wav"),),
+        tmp_path,
+        "office",
+    )]
+    output = capsys.readouterr().out
+    assert str(stored) in output
+    assert "stored 1 clips" in output
+
+
+def test_collect_recordings_only_uses_prompt_delay_and_injected_recorder(
+        monkeypatch, tmp_path, capsys):
+    received = []
+    prompts = []
+    delays = []
+    stored = tmp_path / "not_alarm" / "capture.wav"
+
+    def fake_collect(label, count, seconds, data_dir, **kwargs):
+        received.append((label, count, seconds, data_dir, kwargs))
+        kwargs["before_capture"](1, count, seconds)
+        return (stored,)
+
+    monkeypatch.setattr(cli, "collect_files", _forbid_model_use)
+    monkeypatch.setattr(cli, "collect_recordings", fake_collect)
+    monkeypatch.setattr(
+        builtins, "input", lambda prompt: prompts.append(prompt) or ""
+    )
+    monkeypatch.setattr(cli.time, "sleep", delays.append)
+
+    cli.main([
+        "collect",
+        "not_alarm",
+        "--record",
+        "2",
+        "--seconds",
+        "1.5",
+        "--data-dir",
+        str(tmp_path),
+    ])
+
+    assert len(received) == 1
+    assert received[0][0:4] == ("not_alarm", 2, 1.5, tmp_path)
+    assert received[0][4]["recorder"] is cli.record
+    assert prompts and "1/2" in prompts[0]
+    assert delays == [0.2]
+    assert "stored 1 clips" in capsys.readouterr().out
+
+
+def test_collect_rejects_invalid_label_before_mutation(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "collect_files", _forbid_model_use)
+    monkeypatch.setattr(cli, "collect_recordings", _forbid_model_use)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["collect", "other", "source.wav"])
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert "invalid choice" in stderr
+    assert "traceback" not in stderr
+
+
+@pytest.mark.parametrize(
+    ("arguments", "diagnostic"),
+    [
+        (["alarm", "source.wav", "--record", "-1"], "--record"),
+        (["alarm", "source.wav", "--seconds", "0"], "--seconds"),
+        (["alarm", "source.wav", "--seconds", "-1"], "--seconds"),
+        (["alarm", "source.wav", "--seconds", "nan"], "--seconds"),
+        (["alarm", "source.wav", "--seconds", "inf"], "--seconds"),
+        (["alarm", "source.wav", "--seconds", "0.5"], "--seconds"),
+    ],
+)
+def test_collect_rejects_invalid_options_before_mutation(
+        monkeypatch, capsys, arguments, diagnostic):
+    monkeypatch.setattr(cli, "collect_files", _forbid_model_use)
+    monkeypatch.setattr(cli, "collect_recordings", _forbid_model_use)
+    monkeypatch.setattr(cli, "record", _forbid_model_use)
+    monkeypatch.setattr(builtins, "input", _forbid_model_use)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["collect", *arguments])
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert diagnostic in stderr
+    assert "traceback" not in stderr
+
+
+def test_collect_requires_files_or_recording_before_mutation(
+        monkeypatch, capsys):
+    monkeypatch.setattr(cli, "collect_files", _forbid_model_use)
+    monkeypatch.setattr(cli, "collect_recordings", _forbid_model_use)
+    monkeypatch.setattr(cli, "record", _forbid_model_use)
+    monkeypatch.setattr(builtins, "input", _forbid_model_use)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["collect", "alarm"])
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert "wav files or --record" in stderr
+    assert "traceback" not in stderr
+
+
+def test_train_alarm_passes_paths_and_seed(monkeypatch, tmp_path, capsys):
+    received = []
+    fake_report = SimpleNamespace(
+        deployment_threshold=0.73,
+        oof_metrics=SimpleNamespace(
+            positive_groups_triggered=7,
+            positive_groups_total=7,
+            negative_groups_triggered=0,
+            negative_groups_total=10,
+            false_triggers_per_minute=0.0,
+        ),
+    )
+    monkeypatch.setattr(
+        cli,
+        "_train_alarm",
+        lambda data, output, report, seed=0: (
+            received.append((data, output, report, seed)) or fake_report
+        ),
+        raising=False,
+    )
+
+    cli.main([
+        "train-alarm",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "--output",
+        str(tmp_path / "head.npz"),
+        "--seed",
+        "9",
+    ])
+
+    assert received == [(
+        tmp_path / "data",
+        tmp_path / "head.npz",
+        tmp_path / "fire_smoke_alarm_report.json",
+        9,
+    )]
+    assert capsys.readouterr().out.strip() == (
+        "trained fire_smoke_alarm threshold 0.730; recall 7/7; "
+        "negative groups 0/10; false triggers/min 0.000"
+    )
+
+
+def test_train_alarm_uses_configured_companion_report(
+        monkeypatch, tmp_path):
+    model_path = tmp_path / "configured-head.npz"
+    report_path = tmp_path / "configured-report.json"
+    received = []
+    fake_report = SimpleNamespace(
+        deployment_threshold=0.5,
+        oof_metrics=SimpleNamespace(
+            positive_groups_triggered=1,
+            positive_groups_total=1,
+            negative_groups_triggered=0,
+            negative_groups_total=1,
+            false_triggers_per_minute=0.0,
+        ),
+    )
+    monkeypatch.setattr(cli.config, "ALARM_MODEL_PATH", model_path)
+    monkeypatch.setattr(cli.config, "ALARM_REPORT_PATH", report_path)
+    monkeypatch.setattr(
+        cli,
+        "_train_alarm",
+        lambda data, output, report, seed=0: (
+            received.append((data, output, report, seed)) or fake_report
+        ),
+    )
+
+    cli.main(["train-alarm"])
+
+    assert received[0][1:3] == (model_path, report_path)
+
+
+def test_evaluate_alarm_prints_files_and_scope(monkeypatch, tmp_path, capsys):
+    received = []
+    fake_report = SimpleNamespace(
+        metrics=SimpleNamespace(files=({
+            "label": "alarm",
+            "triggered": True,
+            "path": "alarm/a.wav",
+        },)),
+        payload={"evaluation_scope": "external_corpus"},
+    )
+    monkeypatch.setattr(
+        cli,
+        "_evaluate_alarm",
+        lambda data, model: received.append((data, model)) or fake_report,
+        raising=False,
+    )
+
+    cli.main([
+        "evaluate-alarm",
+        "--data-dir",
+        str(tmp_path / "data"),
+        "--model",
+        str(tmp_path / "head.npz"),
+    ])
+
+    output = capsys.readouterr().out
+    assert received == [(tmp_path / "data", tmp_path / "head.npz")]
+    assert "  alarm     True  alarm/a.wav\n" in output
+    assert '"evaluation_scope": "external_corpus"' in output
+
+
+def test_top5_displays_optional_alarm_score_and_loads_head_once(
+        monkeypatch, tmp_path, capsys):
+    model_path = tmp_path / "head.npz"
+    model_calls = []
+    embeddings = []
+
+    class FakeYamNet:
+        def __init__(self, model, class_map):
+            model_calls.append((model, class_map))
+
+        def infer(self, waveform):
+            return np.array([0.8], dtype=np.float32), np.full(
+                1024, 0.25, dtype=np.float32
+            )
+
+        def top(self, scores, k=5):
+            return [("Siren", float(scores[0]))]
+
+    class FakeHead:
+        def score(self, embedding):
+            embeddings.append(embedding.copy())
+            return 0.42
+
+    class FakeMicStream:
+        def __init__(self, device=None):
+            assert device == 3
+
+        def windows(self):
+            yield np.zeros(cli.config.WINDOW_SAMPLES, dtype=np.float32)
+
+    loaded = []
+    monkeypatch.setattr(cli.config, "ALARM_MODEL_PATH", model_path)
+    monkeypatch.setattr(cli, "YamNet", FakeYamNet)
+    monkeypatch.setattr(cli, "MicStream", FakeMicStream)
+    monkeypatch.setattr(
+        cli,
+        "load_optional_alarm_head",
+        lambda path, **kwargs: loaded.append((path, kwargs)) or FakeHead(),
+        raising=False,
+    )
+
+    cli.main(["top5", "--device", "3"])
+
+    output = capsys.readouterr().out
+    assert "Siren 0.80" in output
+    assert "fire_smoke_alarm 0.42" in output
+    assert len(loaded) == 1
+    assert loaded[0] == (model_path, {
+        "yamnet_model_path": cli.config.MODEL_PATH,
+        "class_map_path": cli.config.CLASS_MAP_PATH,
+    })
+    assert len(embeddings) == 1
+    assert embeddings[0].shape == (1024,)
+
+
+def test_top5_without_alarm_head_omits_trained_score(monkeypatch, capsys):
+    loaded = []
+
+    class FakeYamNet:
+        def __init__(self, model, class_map):
+            pass
+
+        def infer(self, waveform):
+            return np.array([0.8], dtype=np.float32), np.zeros(
+                1024, dtype=np.float32
+            )
+
+        def top(self, scores, k=5):
+            return [("Siren", float(scores[0]))]
+
+    class FakeMicStream:
+        def __init__(self, device=None):
+            pass
+
+        def windows(self):
+            yield np.zeros(cli.config.WINDOW_SAMPLES, dtype=np.float32)
+
+    monkeypatch.setattr(cli, "YamNet", FakeYamNet)
+    monkeypatch.setattr(cli, "MicStream", FakeMicStream)
+    monkeypatch.setattr(
+        cli,
+        "load_optional_alarm_head",
+        lambda *args, **kwargs: loaded.append((args, kwargs)) or None,
+        raising=False,
+    )
+
+    cli.main(["top5"])
+
+    output = capsys.readouterr().out
+    assert "Siren 0.80" in output
+    assert "fire_smoke_alarm" not in output
+    assert len(loaded) == 1
+
+
+def test_top5_reports_malformed_alarm_head_before_listening(
+        monkeypatch, capsys):
+    class FakeYamNet:
+        def __init__(self, model, class_map):
+            pass
+
+    def fail_load(*args, **kwargs):
+        raise alarm_model.AlarmModelError("alarm head schema is malformed")
+
+    monkeypatch.setattr(cli, "YamNet", FakeYamNet)
+    monkeypatch.setattr(cli, "MicStream", _forbid_model_use)
+    monkeypatch.setattr(
+        cli, "load_optional_alarm_head", fail_load, raising=False
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["top5"])
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert "alarm head schema is malformed" in stderr
+    assert "traceback" not in stderr
+
+
+def test_run_passes_configured_alarm_artifact(monkeypatch, tmp_path):
+    received = []
+    model_path = tmp_path / "fire_smoke_alarm_head.npz"
+
+    class FakeEngine:
+        def __init__(self, **kwargs):
+            received.append(kwargs)
+
+        def learned_sounds(self):
+            return []
+
+        def run(self):
+            return None
+
+    monkeypatch.setattr(cli.config, "ALARM_MODEL_PATH", model_path)
+    monkeypatch.setattr(cli, "EarshotML", FakeEngine)
+
+    cli.main(["run"])
+
+    assert received[0]["alarm_model_path"] == model_path
+
+
+@pytest.mark.parametrize(
+    ("command", "diagnostic"),
+    [
+        ("collect", "corpus destination is invalid"),
+        ("train", "training corpus has no groups"),
+        ("evaluate", "evaluation artifact is incompatible"),
+    ],
+)
+def test_alarm_workflow_errors_are_concise(
+        monkeypatch, capsys, command, diagnostic):
+    from earshot_ml.alarm_training import TrainingError
+
+    if command == "collect":
+        def fail(*args, **kwargs):
+            raise cli.AlarmDataError(diagnostic)
+
+        monkeypatch.setattr(cli, "collect_files", fail)
+        arguments = ["collect", "alarm", "source.wav"]
+    elif command == "train":
+        def fail(*args, **kwargs):
+            raise TrainingError(diagnostic)
+
+        monkeypatch.setattr(cli, "_train_alarm", fail)
+        arguments = ["train-alarm"]
+    else:
+        def fail(*args, **kwargs):
+            raise TrainingError(diagnostic)
+
+        monkeypatch.setattr(cli, "_evaluate_alarm", fail)
+        arguments = ["evaluate-alarm"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(arguments)
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert diagnostic in stderr
+    assert "traceback" not in stderr
+
+
+def test_non_training_commands_do_not_import_sklearn(monkeypatch):
+    class FakeYamNet:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class FakeMicStream:
+        def __init__(self, device=None):
+            pass
+
+        def windows(self):
+            return iter(())
+
+    class FakeEngine:
+        def __init__(self, **kwargs):
+            pass
+
+        def learned_sounds(self):
+            return []
+
+        def run(self):
+            return None
+
+        def teach(self, name, clips):
+            return len(clips)
+
+    class FakeStore:
+        def learned(self):
+            return []
+
+        def forget(self, name):
+            return 0
+
+        def save(self):
+            return None
+
+    monkeypatch.setattr(cli, "download_artifact", lambda artifact: False)
+    monkeypatch.setattr(cli, "YamNet", FakeYamNet)
+    monkeypatch.setattr(cli, "MicStream", FakeMicStream)
+    monkeypatch.setattr(cli, "EarshotML", FakeEngine)
+    monkeypatch.setattr(cli, "_teach_store", FakeStore)
+    monkeypatch.setattr(
+        cli, "load_optional_alarm_head", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        cli,
+        "collect_files",
+        lambda *args, **kwargs: (Path("stored.wav"),),
+    )
+    real_import = builtins.__import__
+
+    def guarded(name, *args, **kwargs):
+        if name == "sklearn" or name.startswith("sklearn."):
+            pytest.fail(f"non-training command imported {name}")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded)
+
+    cli.main(["download"])
+    cli.main(["top5"])
+    cli.main(["run"])
+    cli.main(["teach", "custom", "clip.wav"])
+    cli.main(["sounds"])
+    cli.main(["forget", "custom"])
+    cli.main(["collect", "alarm", "clip.wav"])
 
 
 def test_main_parses_supplied_argv(monkeypatch):
@@ -379,6 +993,31 @@ def test_teach_rejects_reserved_name_before_engine_recording_or_files(
     stderr = capsys.readouterr().err.lower()
     assert "smoke_alarm" in stderr
     assert "pretrained label" in stderr
+    assert "traceback" not in stderr
+
+
+def test_teach_rejects_trained_alarm_name_before_any_side_effect(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "EarshotML", _forbid_model_use)
+    monkeypatch.setattr(cli, "YamNet", _forbid_model_use)
+    monkeypatch.setattr(cli, "record", _forbid_model_use)
+    monkeypatch.setattr(builtins, "input", _forbid_model_use)
+    monkeypatch.setattr(cli.config, "MODEL_PATH", tmp_path / "missing.tflite")
+    monkeypatch.setattr(cli.config, "CLASS_MAP_PATH", tmp_path / "missing.csv")
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main([
+            "teach",
+            "  FIRE_SMOKE_ALARM  ",
+            str(tmp_path / "missing.wav"),
+            "--record",
+            "1",
+        ])
+
+    assert exc_info.value.code != 0
+    stderr = capsys.readouterr().err.lower()
+    assert "fire_smoke_alarm" in stderr
+    assert "trained" in stderr
     assert "traceback" not in stderr
 
 

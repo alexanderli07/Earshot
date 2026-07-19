@@ -45,12 +45,24 @@ ALERT_PROFILES = {
 }
 DEFAULT_URGENCY = "medium"
 
+# Priority ranks: a lower-ranked alert never interrupts an active higher one
+# (a microwave ding must not cancel a smoke-alarm strobe).
+URGENCY_RANK = {"low": 1, "medium": 2, "high": 3}
+
 # Vibration patterns as alternating on/off seconds, starting with ON.
 #   urgent = strobe plus a long buzz; notice = one pulse.
 MOTOR_PATTERNS = {
     "long":  [0.5, 0.12, 0.5, 0.12, 1.6],   # strobe, then long buzz
     "pulse": [0.30],                          # one pulse
     "short": [0.12],                          # brief tick
+}
+
+# LED pattern timing: the LED cycles on/off at these periods (seconds) for
+# the duration of the motor pattern, then turns off.
+LED_PATTERNS = {
+    "strobe": {"on": 0.12, "off": 0.12},
+    "pulse":  {"on": 0.45, "off": 0.25},
+    "blink":  {"on": 0.20, "off": 0.60},
 }
 
 # Debug endpoint default when no label/urgency is supplied.

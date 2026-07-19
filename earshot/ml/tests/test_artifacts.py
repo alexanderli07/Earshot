@@ -367,6 +367,38 @@ def test_config_model_directory_override_updates_all_paths(monkeypatch, tmp_path
     importlib.reload(config)
 
 
+def test_config_defines_alarm_paths_under_expected_roots(monkeypatch, tmp_path):
+    with monkeypatch.context() as scoped:
+        scoped.setenv("EARSHOT_MODEL_DIR", str(tmp_path / "models"))
+        scoped.setenv("EARSHOT_ALARM_MODEL_PATH", str(tmp_path / "head.npz"))
+        reloaded = importlib.reload(config)
+
+        assert reloaded.ALARM_MODEL_PATH == tmp_path / "head.npz"
+        assert (
+            reloaded.ALARM_REPORT_PATH
+            == tmp_path / "models" / "fire_smoke_alarm_report.json"
+        )
+        assert reloaded.ALARM_DATA_DIR.name == "alarm_demo"
+
+    importlib.reload(config)
+
+
+def test_config_defines_trained_alarm_runtime_contract():
+    assert config.ALARM_EVENT_LABEL == "fire_smoke_alarm"
+    assert config.ALARM_EVENT_URGENCY == "high"
+    assert config.ALARM_REPLACED_LABELS == frozenset(
+        {"fire_alarm", "smoke_alarm"}
+    )
+    assert config.ALARM_GATE_COUNT == 2
+    assert config.ALARM_GATE_WINDOW == 8
+    assert config.RESERVED_EVENT_LABELS == frozenset(
+        {
+            *(entry["label"].strip().casefold() for entry in config.EVENT_MAP),
+            config.ALARM_EVENT_LABEL.strip().casefold(),
+        }
+    )
+
+
 def test_config_defines_verified_official_artifacts():
     assert config.MODEL_ARTIFACT == Artifact(
         MODEL_URL,

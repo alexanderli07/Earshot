@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from earshot_ml import config, core  # noqa: E402
+from earshot_ml.alarm_model import AlarmModelError  # noqa: E402
 from earshot_ml.core import EarshotML  # noqa: E402
 
 
@@ -39,8 +40,50 @@ class FakeYamNet:
         return (np.zeros(len(self.class_names), dtype=np.float32), embedding())
 
 
+class FakeAlarmHead:
+    label = "fire_smoke_alarm"
+    urgency = "high"
+    threshold = 0.70
+    gate_count = 2
+    gate_window = 8
+
+    def __init__(self):
+        self.score_calls = []
+
+    def score(self, value):
+        self.score_calls.append(value)
+        return float(np.asarray(value)[0])
+
+
 def make_engine(yamnet, **kwargs):
-    return EarshotML(yamnet=yamnet, taught_store_path=None, **kwargs)
+    return EarshotML(
+        yamnet=yamnet,
+        taught_store_path=None,
+        alarm_model_path=None,
+        **kwargs,
+    )
+
+
+def test_legacy_seventh_positional_yamnet_argument_remains_supported():
+    fake = FakeYamNet(class_names=[])
+
+    engine = EarshotML(
+        None,
+        None,
+        None,
+        config.MODEL_PATH,
+        config.CLASS_MAP_PATH,
+        None,
+        fake,
+        alarm_model_path=None,
+    )
+
+    assert engine.yamnet is fake
+    assert engine.process_window(
+        np.zeros(config.WINDOW_SAMPLES),
+        now=0.0,
+    ) == []
+    assert len(fake.infer_calls) == 1
 
 
 def test_pretrained_event_fires_after_two_windows():
@@ -113,6 +156,233 @@ def test_same_label_from_taught_and_pretrained_has_independent_state():
     ]
 
 
+def test_missing_alarm_artifact_preserves_exact_generic_fallback(tmp_path):
+    result = (
+        np.array([0.0, 0.99, 0.0], dtype=np.float32),
+        embedding(1),
+    )
+    fake = FakeYamNet(
+        [result, result],
+        class_names=[
+            "Fire alarm",
+            "Smoke detector, smoke alarm",
+            "Doorbell",
+        ],
+    )
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=None,
+        alarm_model_path=tmp_path / "missing.npz",
+    )
+
+    assert engine.alarm_head is None
+    assert [spec["label"] for spec in engine._specs] == [
+        "smoke_alarm",
+        "fire_alarm",
+        "doorbell",
+    ]
+    assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
+    events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5)
+    assert [(event.label, event.source) for event in events] == [
+        ("smoke_alarm", "pretrained")
+    ]
+
+
+def test_corrupt_existing_alarm_artifact_propagates_at_startup(tmp_path):
+    artifact = tmp_path / "corrupt.npz"
+    artifact.write_bytes(b"not an alarm artifact")
+
+    with pytest.raises(AlarmModelError, match="Could not read alarm artifact"):
+        EarshotML(
+            yamnet=FakeYamNet(class_names=[]),
+            taught_store_path=None,
+            alarm_model_path=artifact,
+        )
+
+
+def test_injected_alarm_head_wins_over_existing_artifact(tmp_path):
+    artifact = tmp_path / "corrupt.npz"
+    artifact.write_bytes(b"must not be loaded")
+    head = FakeAlarmHead()
+
+    engine = EarshotML(
+        yamnet=FakeYamNet(class_names=[]),
+        taught_store_path=None,
+        alarm_model_path=artifact,
+        alarm_head=head,
+    )
+
+    assert engine.alarm_head is head
+
+
+def test_trained_head_uses_same_embedding_and_two_of_eight_gate():
+    positive = embedding(0)
+    negative = embedding(1)
+    fake = FakeYamNet(
+        [
+            (np.array([0.99], np.float32), positive),
+            (np.array([0.99], np.float32), negative),
+            (np.array([0.99], np.float32), positive),
+        ],
+        class_names=["Fire alarm"],
+    )
+    head = FakeAlarmHead()
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=head,
+    )
+
+    assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
+    assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5) == []
+    events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=2.0)
+
+    assert [(event.label, event.source) for event in events] == [
+        ("fire_smoke_alarm", "trained")
+    ]
+    assert len(fake.infer_calls) == 3
+    assert head.score_calls == [positive, negative, positive]
+    assert all(
+        scored is returned
+        for scored, returned in zip(
+            head.score_calls,
+            [positive, negative, positive],
+        )
+    )
+
+
+def test_trained_head_suppresses_only_generic_alarm_specs():
+    fake = FakeYamNet(
+        class_names=[
+            "Fire alarm",
+            "Smoke detector, smoke alarm",
+            "Doorbell",
+        ]
+    )
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+    )
+
+    assert [spec["label"] for spec in engine._specs] == ["doorbell"]
+
+
+def test_trained_head_preserves_doorbell_and_taught_events():
+    positive = embedding(0)
+    result = (np.array([0.99, 0.99], np.float32), positive)
+    engine = EarshotML(
+        yamnet=FakeYamNet(
+            [result, result],
+            class_names=["Fire alarm", "Doorbell"],
+        ),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+    )
+    engine.store.add("kettle", positive)
+
+    first = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=3.0)
+    second = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=3.5)
+
+    assert [(event.label, event.source) for event in first] == [
+        ("kettle", "taught")
+    ]
+    assert [(event.label, event.source) for event in second] == [
+        ("doorbell", "pretrained"),
+        ("fire_smoke_alarm", "trained"),
+    ]
+
+
+def test_trained_alarm_uses_unchanged_ten_second_debounce():
+    positive = embedding(0)
+    result = (np.array([0.99], np.float32), positive)
+    engine = EarshotML(
+        yamnet=FakeYamNet(
+            [result, result, result, result],
+            class_names=["Fire alarm"],
+        ),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+    )
+
+    fired = []
+    for now in (0.0, 0.5, 5.0, 10.5):
+        fired.extend(
+            engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=now)
+        )
+
+    assert [(event.label, event.timestamp) for event in fired] == [
+        ("fire_smoke_alarm", 0.5),
+        ("fire_smoke_alarm", 10.5),
+    ]
+
+
+def test_trained_alarm_gate_state_is_independent_per_engine():
+    positive = embedding(0)
+    result = (np.array([0.99], np.float32), positive)
+    first = EarshotML(
+        yamnet=FakeYamNet([result, result], class_names=["Fire alarm"]),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+    )
+    second = EarshotML(
+        yamnet=FakeYamNet([result], class_names=["Fire alarm"]),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+    )
+
+    assert first.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
+    assert second.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
+    events = first.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5)
+
+    assert [(event.label, event.source) for event in events] == [
+        ("fire_smoke_alarm", "trained")
+    ]
+
+
+def test_trained_event_callback_and_queue_keep_exact_public_payload():
+    event_queue = queue.Queue()
+    callback_payloads = []
+    positive = embedding(0)
+    result = (np.array([0.99], np.float32), positive)
+    engine = EarshotML(
+        yamnet=FakeYamNet([result, result], class_names=["Fire alarm"]),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+        on_event=callback_payloads.append,
+        event_queue=event_queue,
+    )
+
+    assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=41.5) == []
+    events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=42.0)
+
+    expected = {
+        "label": "fire_smoke_alarm",
+        "urgency": "high",
+        "confidence": 1.0,
+        "source": "trained",
+        "timestamp": 42.0,
+    }
+    assert [event.to_dict() for event in events] == [expected]
+    assert callback_payloads == [expected]
+    assert event_queue.get_nowait() == expected
+    assert event_queue.empty()
+    assert set(expected) == {
+        "label",
+        "urgency",
+        "confidence",
+        "source",
+        "timestamp",
+    }
+
+
 class CountingScores:
     def __init__(self, values):
         self.values = np.asarray(values, dtype=np.float32)
@@ -158,6 +428,33 @@ def test_teach_rejects_pretrained_label_case_insensitively_after_trim():
     assert engine.learned_sounds() == []
 
 
+def test_teach_rejects_trained_alarm_label_before_files_or_store_mutation(
+        tmp_path, monkeypatch):
+    store_path = tmp_path / "taught.npz"
+    original = core.TeachStore(store_path)
+    original.add("keep", embedding())
+    original.save()
+    original_bytes = store_path.read_bytes()
+    fake = FakeYamNet(class_names=[])
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=store_path,
+        alarm_model_path=None,
+    )
+
+    def forbid_file_load(path):
+        pytest.fail(f"reserved name tried to load {path}")
+
+    monkeypatch.setattr(core, "load_wav_16k_mono", forbid_file_load)
+
+    with pytest.raises(ValueError, match="reserved"):
+        engine.teach("  FIRE_SMOKE_ALARM  ", [tmp_path / "missing.wav"])
+
+    assert fake.infer_calls == []
+    assert engine.learned_sounds() == [{"name": "keep", "clips": 1}]
+    assert store_path.read_bytes() == original_bytes
+
+
 @pytest.mark.parametrize("clips", [None, 42, [], ()])
 def test_teach_requires_a_nonempty_clip_iterable(clips):
     fake = FakeYamNet(class_names=[])
@@ -197,6 +494,7 @@ def test_teach_validates_every_clip_before_any_inference_or_store_mutation(
     engine = EarshotML(
         yamnet=fake,
         taught_store_path=store_path,
+        alarm_model_path=None,
     )
     valid = np.ones(config.WINDOW_SAMPLES, dtype=np.float32)
     invalid = np.array([np.nan], dtype=np.float32)
@@ -270,7 +568,11 @@ def test_teach_prepares_every_embedding_before_mutating_or_saving(
         ],
         class_names=[],
     )
-    engine = EarshotML(yamnet=fake, taught_store_path=store_path)
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=store_path,
+        alarm_model_path=None,
+    )
     before_vectors = engine.store._vectors.copy()
     save_calls = []
     monkeypatch.setattr(engine.store, "save", lambda: save_calls.append(True))
@@ -304,7 +606,11 @@ def test_teach_save_failure_restores_memory_and_existing_store(
         [(np.array([], dtype=np.float32), embedding(1))],
         class_names=[],
     )
-    engine = EarshotML(yamnet=fake, taught_store_path=store_path)
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=store_path,
+        alarm_model_path=None,
+    )
     before_vectors = engine.store._vectors.copy()
 
     def fail_savez(output, **_arrays):
@@ -344,6 +650,7 @@ def test_forget_save_failure_restores_memory_and_existing_store(
     engine = EarshotML(
         yamnet=FakeYamNet(class_names=[]),
         taught_store_path=store_path,
+        alarm_model_path=None,
     )
     before_vectors = engine.store._vectors.copy()
 
@@ -379,7 +686,11 @@ def test_teach_success_commits_and_returns_stored_count(tmp_path):
         [(np.array([], dtype=np.float32), embedding(1))],
         class_names=[],
     )
-    engine = EarshotML(yamnet=fake, taught_store_path=store_path)
+    engine = EarshotML(
+        yamnet=fake,
+        taught_store_path=store_path,
+        alarm_model_path=None,
+    )
     audio = np.ones(config.WINDOW_SAMPLES, dtype=np.float32)
 
     assert engine.teach("kettle", [audio]) == 1
@@ -398,6 +709,7 @@ def test_forget_success_commits_and_returns_removed_count(tmp_path):
     engine = EarshotML(
         yamnet=FakeYamNet(class_names=[]),
         taught_store_path=store_path,
+        alarm_model_path=None,
     )
 
     assert engine.forget("remove") == 1
@@ -415,8 +727,9 @@ def test_run_forwards_stop_event_to_stream_and_exits(monkeypatch):
         def __init__(self, device=None):
             received["device"] = device
 
-        def windows(self, stop_event=None):
+        def windows(self, stop_event=None, on_gap=None):
             received["stop_event"] = stop_event
+            received["on_gap"] = on_gap
             yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
             stop_event.set()
 
@@ -425,6 +738,76 @@ def test_run_forwards_stop_event_to_stream_and_exits(monkeypatch):
     monkeypatch.setattr(core, "MicStream", FakeMicStream)
 
     assert engine.run(stop_event=stop_event) is None
-    assert received == {"device": "fake-device", "stop_event": stop_event}
+    assert received == {
+        "device": "fake-device",
+        "stop_event": stop_event,
+        "on_gap": engine._reset_after_capture_gap,
+    }
     assert stop_event.is_set()
     assert len(fake.infer_calls) == 1
+
+
+def test_run_capture_gap_does_not_combine_any_detection_evidence(monkeypatch):
+    positive = embedding(0)
+    result = (np.array([0.99, 0.99], np.float32), positive)
+    emitted = []
+
+    class GappedMicStream:
+        def __init__(self, device=None):
+            del device
+
+        def windows(self, stop_event=None, on_gap=None):
+            del stop_event
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+            on_gap()
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+
+    engine = EarshotML(
+        yamnet=FakeYamNet(
+            [result, result],
+            class_names=["Fire alarm", "Doorbell"],
+        ),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+        on_event=emitted.append,
+    )
+    monkeypatch.setattr(core, "MicStream", GappedMicStream)
+
+    engine.run()
+
+    assert emitted == []
+
+
+def test_run_capture_gap_preserves_event_debounce(monkeypatch):
+    positive = embedding(0)
+    result = (np.array([0.99], np.float32), positive)
+    emitted = []
+
+    class GappedMicStream:
+        def __init__(self, device=None):
+            del device
+
+        def windows(self, stop_event=None, on_gap=None):
+            del stop_event
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+            on_gap()
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+            yield np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+
+    engine = EarshotML(
+        yamnet=FakeYamNet(
+            [result, result, result, result],
+            class_names=["Fire alarm"],
+        ),
+        taught_store_path=None,
+        alarm_model_path=None,
+        alarm_head=FakeAlarmHead(),
+        on_event=emitted.append,
+    )
+    monkeypatch.setattr(core, "MicStream", GappedMicStream)
+
+    engine.run()
+
+    assert [event["label"] for event in emitted] == ["fire_smoke_alarm"]
