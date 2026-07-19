@@ -17,7 +17,7 @@ microphone
    -> 16 kHz overlapping windows
    -> frozen YAMNet TFLite model
       -> configured AudioSet event rules
-      -> optional trained fire_smoke_alarm logistic head
+      -> optional trained smoke_alarm logistic head
       -> optional user-taught cosine-similarity sounds
    -> streak/evidence gate + 10 second debounce
    -> FastAPI dispatcher

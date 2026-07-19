@@ -42,8 +42,9 @@ The main modules are:
 6. Fired events go synchronously to the configured callback and/or event
    queue.
 
-The supplied map includes smoke alarm, fire alarm, doorbell/ding-dong, knock,
-baby cry, and glass break events. The thresholds in
+The supplied map includes one smoke-alarm event backed by both the YAMNet
+smoke-detector and fire-alarm classes, plus doorbell/ding-dong, knock, baby
+cry, and glass break events. The thresholds in
 [`config.py`](earshot_ml/config.py) are starting points, not universal
 calibration.
 

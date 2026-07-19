@@ -81,22 +81,22 @@ ntfy still works on any network because it only needs outbound internet.
 
 ## ML integration
 
-A compatible trained head emits one shared event:
+A compatible trained head emits the same public event used by the YAMNet
+fallback:
 
 ```json
 {
-  "label": "fire_smoke_alarm",
+  "label": "smoke_alarm",
   "urgency": "high",
   "source": "trained"
 }
 ```
 
 The source is preserved through dispatch, and high urgency receives the top
-GPIO/push priority. `fire_smoke_alarm` is a separate rule from the legacy
-`smoke_alarm` and `fire_alarm` fallback labels. Existing saved rules are not
-automatically migrated because guessing the intended enabled/urgency state
-could suppress an alarm. Configure the new rule explicitly after deploying a
-head.
+GPIO/push priority. Incoming `fire_alarm` and `fire_smoke_alarm` events are
+canonicalized to `smoke_alarm`. Saved rules are exposed under that same key;
+an existing `smoke_alarm` rule wins, otherwise one legacy alarm rule is
+migrated deterministically.
 
 The backend runs standalone (debug events) with no ML present. When the
 sibling `../ml` package is importable and its model is downloaded, live mic
@@ -108,7 +108,7 @@ off the event loop with a 30 s deadline, and deletes the temporary audio
 files whether teaching succeeds or fails. `/healthz` reports `ml.alive`
 (listener thread actually running) separately from `ml.available` (package
 imported), plus engine, listener, asynchronous-dispatch, or stop-timeout
-errors. `fire_smoke_alarm` and every configured event label are reserved from
+errors. `smoke_alarm` and every configured event label are reserved from
 both the CLI and direct/backend teach API.
 
 ## Tests (no hardware or network)

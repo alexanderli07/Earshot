@@ -16,6 +16,7 @@ from .artifacts import sha256_file
 
 SCHEMA = "earshot.fire_smoke_alarm_head"
 SCHEMA_VERSION = 1
+LEGACY_ALARM_EVENT_LABEL = "fire_smoke_alarm"
 FEATURE_DIM = 1024
 ARTIFACT_KEYS = frozenset({
     "schema",
@@ -297,8 +298,17 @@ def _head_from_values(values: dict[str, np.ndarray]) -> AlarmHead:
             f"unsupported alarm artifact schema version {integers['schema_version']}"
         )
 
+    stored_label = strings["label"]
+    if stored_label not in {
+        config.ALARM_EVENT_LABEL,
+        LEGACY_ALARM_EVENT_LABEL,
+    }:
+        raise AlarmModelError(
+            f"unsupported alarm head label {stored_label!r}"
+        )
+
     head = AlarmHead(
-        label=strings["label"],
+        label=config.ALARM_EVENT_LABEL,
         urgency=strings["urgency"],
         feature_dim=integers["feature_dim"],
         mean=_vector(values, "mean"),

@@ -24,7 +24,7 @@ def make_head(model_digest="a" * 64, map_digest="b" * 64, **overrides):
     weights = np.zeros(FEATURE_DIM, dtype=np.float32)
     weights[0] = 2.0
     values = {
-        "label": "fire_smoke_alarm",
+        "label": "smoke_alarm",
         "urgency": "high",
         "feature_dim": FEATURE_DIM,
         "mean": np.zeros(FEATURE_DIM, dtype=np.float32),
@@ -181,6 +181,7 @@ def test_artifact_uses_exact_keys_shapes_and_dtypes(tmp_path):
 
         assert archive["schema"].item() == SCHEMA
         assert archive["schema_version"].item() == SCHEMA_VERSION
+        assert archive["label"].item() == "smoke_alarm"
 
 
 def test_artifact_round_trip_digest_validation_and_immutable_vectors(tmp_path):
@@ -190,7 +191,7 @@ def test_artifact_round_trip_digest_validation_and_immutable_vectors(tmp_path):
     save_alarm_head(path, head)
     loaded = load_with_files(path, model, class_map)
 
-    assert loaded.label == "fire_smoke_alarm"
+    assert loaded.label == "smoke_alarm"
     assert loaded.urgency == "high"
     np.testing.assert_array_equal(loaded.mean, head.mean)
     np.testing.assert_array_equal(loaded.scale, head.scale)
@@ -201,6 +202,18 @@ def test_artifact_round_trip_digest_validation_and_immutable_vectors(tmp_path):
             vector[0] = 1.0
     with pytest.raises(FrozenInstanceError):
         loaded.bias = 0.0
+
+
+def test_loader_canonicalizes_legacy_alarm_label(tmp_path):
+    model, class_map, head = compatible_files(tmp_path)
+    payload = artifact_payload(head)
+    payload["label"] = np.array("fire_smoke_alarm", dtype=np.str_)
+    path = tmp_path / "legacy-head.npz"
+    write_artifact(path, payload)
+
+    loaded = load_with_files(path, model, class_map)
+
+    assert loaded.label == "smoke_alarm"
 
 
 @pytest.mark.parametrize("missing_key", sorted(ARTIFACT_KEYS))
@@ -231,7 +244,7 @@ def test_loader_rejects_extra_keys(tmp_path):
     [
         ("schema", np.array("wrong.schema", dtype=np.str_)),
         ("schema_version", np.array(2, dtype=np.int64)),
-        ("label", np.array("smoke_alarm", dtype=np.str_)),
+        ("label", np.array("other_alarm", dtype=np.str_)),
         ("urgency", np.array("medium", dtype=np.str_)),
         ("feature_dim", np.array(512, dtype=np.int64)),
         ("threshold", np.array(0.0, dtype=np.float64)),
@@ -400,6 +413,7 @@ def test_save_validation_preserves_previous_artifact_without_temp(tmp_path):
 @pytest.mark.parametrize(
     ("field", "invalid_value"),
     [
+        ("label", "fire_smoke_alarm"),
         (
             "label",
             np.array(["fire_smoke_alarm"], dtype=np.str_),
@@ -422,6 +436,7 @@ def test_save_validation_preserves_previous_artifact_without_temp(tmp_path):
         ("urgency", 7),
     ],
     ids=[
+        "legacy-label",
         "label-vector",
         "label-zero-dimensional-array",
         "label-list",

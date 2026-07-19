@@ -8,6 +8,7 @@ GPIO auto-mocks off-Pi; ntfy is monkeypatched; no network or hardware needed.
 """
 
 import asyncio
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -28,6 +29,14 @@ def test_normalize_fills_defaults_and_ids():
     assert a["source"] == "pretrained"
     assert a["id"] != b["id"]                      # unique ids
     assert 0.0 <= a["confidence"] <= 1.0
+
+
+def test_normalize_maps_legacy_alarm_labels():
+    assert normalize_event({"label": "fire_alarm"})["label"] == "smoke_alarm"
+    assert (
+        normalize_event({"label": "fire_smoke_alarm"})["label"]
+        == "smoke_alarm"
+    )
 
 
 def test_normalize_rejects_bad_urgency():
@@ -59,6 +68,24 @@ def test_rules_persist_roundtrip():
         Rules(path=path).set("kettle", enabled=False, urgency=None)
         assert Rules(path=path).all() == {
             "kettle": {"enabled": False, "urgency": None}}
+
+
+def test_rules_canonicalize_legacy_alarm_labels():
+    rules = Rules(path=None)
+    rules.set("fire_alarm", enabled=False, urgency="low")
+    assert rules.all() == {
+        "smoke_alarm": {"enabled": False, "urgency": "low"},
+    }
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "rules.json"
+        path.write_text(json.dumps({
+            "fire_alarm": {"enabled": True, "urgency": "low"},
+            "fire_smoke_alarm": {"enabled": False, "urgency": "medium"},
+        }))
+        assert Rules(path=path).all() == {
+            "smoke_alarm": {"enabled": False, "urgency": "medium"},
+        }
 
 
 def test_dispatch_fans_out_to_all_sinks():

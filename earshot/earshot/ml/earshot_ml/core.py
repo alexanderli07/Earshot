@@ -379,10 +379,7 @@ class EarshotML:
         name = name.strip()
         if not name:
             raise ValueError("teach name must be a non-empty string")
-        reserved_names = {
-            entry["label"].strip().casefold() for entry in config.EVENT_MAP
-        }
-        if name.casefold() in reserved_names:
+        if name.casefold() in config.RESERVED_EVENT_LABELS:
             raise ValueError(
                 f"teach name {name!r} conflicts with a pretrained label")
 

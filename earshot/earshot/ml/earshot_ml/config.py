@@ -45,14 +45,17 @@ CLASS_MAP_ARTIFACT = Artifact(
     sha256="cdf24d193e196d9e95912a2667051ae203e92a2ba09449218ccb40ef787c6df2",
 )
 
+# Retired public alarm identities remain reserved so taught sounds cannot be
+# canonicalized into the built-in smoke alarm by newer backends.
+LEGACY_ALARM_EVENT_LABELS = frozenset({"fire_alarm", "fire_smoke_alarm"})
+
 # --- YAMNet display names -> Earshot events ---
 # Class names must match the display_name column of yamnet_class_map.csv
 # exactly. Thresholds are starting points; tune with clips played into real
 # room noise.
 EVENT_MAP = [
-    {"label": "smoke_alarm", "classes": ["Smoke detector, smoke alarm"],
-     "threshold": 0.30, "urgency": "high"},
-    {"label": "fire_alarm", "classes": ["Fire alarm"],
+    {"label": "smoke_alarm",
+     "classes": ["Smoke detector, smoke alarm", "Fire alarm"],
      "threshold": 0.30, "urgency": "high"},
     {"label": "doorbell", "classes": ["Doorbell", "Ding-dong"],
      "threshold": 0.35, "urgency": "medium"},
@@ -63,3 +66,8 @@ EVENT_MAP = [
     {"label": "glass_break", "classes": ["Shatter"],
      "threshold": 0.40, "urgency": "high"},
 ]
+
+RESERVED_EVENT_LABELS = frozenset({
+    *(entry["label"].strip().casefold() for entry in EVENT_MAP),
+    *(label.casefold() for label in LEGACY_ALARM_EVENT_LABELS),
+})
