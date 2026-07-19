@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: earshot-ml
+Version: 0.1.0
+Requires-Python: <3.15,>=3.10
+Requires-Dist: numpy
+Requires-Dist: sounddevice
+Requires-Dist: ai-edge-litert; platform_machine != "armv7l"
+Requires-Dist: tflite-runtime==2.14.0; platform_machine == "armv7l"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: tomli; python_version < "3.11" and extra == "test"
