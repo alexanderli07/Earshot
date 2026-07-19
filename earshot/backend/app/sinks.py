@@ -255,7 +255,11 @@ async def pi_alert(client, event):
     if rank < floor:
         return None
     try:
-        response = await client.post(f"{config.PI_ALERT_URL}/alarm")
+        response = await client.post(
+            f"{config.PI_ALERT_URL}/alarm",
+            json={"label": event.get("label"),
+                  "urgency": event.get("urgency")},
+        )
         return response.status_code < 400
     except Exception as exc:   # Pi off, hotspot down — never break dispatch
         print(f"[pi] wearable alert failed: {exc}", file=sys.stderr)

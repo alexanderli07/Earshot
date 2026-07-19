@@ -27,7 +27,7 @@ NTFY_TOPIC = os.environ.get("EARSHOT_NTFY_TOPIC", "")
 # Events below PI_ALERT_MIN_URGENCY are not forwarded (the wearable only
 # fires for things worth shaking a person over).
 PI_ALERT_URL = os.environ.get("EARSHOT_PI_URL", "").rstrip("/")
-PI_ALERT_MIN_URGENCY = os.environ.get("EARSHOT_PI_MIN_URGENCY", "medium")
+PI_ALERT_MIN_URGENCY = os.environ.get("EARSHOT_PI_MIN_URGENCY", "low")
 
 # --- Server ---
 HOST = os.environ.get("EARSHOT_HOST", "0.0.0.0")   # 0.0.0.0 so phones on the
