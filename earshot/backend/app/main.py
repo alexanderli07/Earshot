@@ -10,16 +10,27 @@ Endpoints:
     POST /debug/event        fire a fake event (build without waiting on ML)
     POST /teach              name + 3 audio clips -> ML teach
     GET  /sounds             taught sounds
-    GET  /rules              per-sound rules
+    GET  /rules              per-sound rules (device-global)
     PUT  /rules/{label}      set on/off + urgency override
+
+Accounts (MongoDB; 503 when EARSHOT_MONGO_URI is unset):
+    POST /auth/register      create account + log in
+    POST /auth/login         log in (sets httpOnly session cookie)
+    POST /auth/logout        log out (records logout time)
+    GET  /auth/me            current user
+    GET  /auth/sessions      this user's login/logout history
+    GET  /me/rules           per-user rules
+    PUT  /me/rules/{label}   set a per-user rule
+    GET  /me/prefs           per-user preferences
+    PUT  /me/prefs           set preferences (own ntfy topic, shown categories)
 """
 
 import asyncio
 import contextlib
 from pathlib import Path
 
-from fastapi import (FastAPI, File, Form, HTTPException, UploadFile,
-                     WebSocket, WebSocketDisconnect)
+from fastapi import (Depends, FastAPI, File, Form, HTTPException, Request,
+                     Response, UploadFile, WebSocket, WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -29,10 +40,26 @@ REQUIRED_CLIPS = 3
 MAX_CLIP_BYTES = 5 * 1024 * 1024          # ~2.5 min of 16 kHz 16-bit mono
 TEACH_TIMEOUT_S = 30.0
 
-from . import config
-from .core import Dispatcher, RecentEvents, Rules
+from . import auth, config
+from .authstore import UserStore
+from .core import Dispatcher, RecentEvents, Rules, _VALID_URGENCY
 from .ml_bridge import MLBridge
 from .sinks import Alerts, EventHub, push
+
+
+async def _build_user_store():
+    """Create the Mongo-backed UserStore, or (None, None) when auth is off.
+
+    Split out so tests can monkeypatch it to inject an in-memory mongomock
+    database and run the real store code without a mongod.
+    """
+    if not config.MONGO_URI:
+        return None, None
+    from motor.motor_asyncio import AsyncIOMotorClient
+    client = AsyncIOMotorClient(config.MONGO_URI)
+    store = UserStore(client[config.MONGO_DB])
+    await store.ensure_indexes()
+    return store, client
 
 
 @contextlib.asynccontextmanager
@@ -52,12 +79,21 @@ async def lifespan(app: FastAPI):
     bridge = MLBridge()
     bridge.start(asyncio.get_running_loop(), dispatcher.dispatch)
 
+    # Per-user accounts (optional; only when EARSHOT_MONGO_URI is set).
+    try:
+        users, mongo_client = await _build_user_store()
+    except Exception as exc:   # bad URI / Mongo down must not brick the server
+        print(f"[auth] user store unavailable ({exc}); auth disabled",
+              file=__import__("sys").stderr)
+        users, mongo_client = None, None
+
     app.state.hub = hub
     app.state.recent = recent
     app.state.rules = rules
     app.state.alerts = alerts
     app.state.dispatcher = dispatcher
     app.state.bridge = bridge
+    app.state.users = users
     try:
         yield
     finally:
@@ -66,6 +102,8 @@ async def lifespan(app: FastAPI):
         bridge.stop()
         alerts.close()
         await client.aclose()
+        if mongo_client is not None:
+            mongo_client.close()
 
 
 app = FastAPI(title="Earshot backend", lifespan=lifespan)
@@ -116,6 +154,7 @@ async def healthz():
         "gpio_mock": app.state.alerts.mock,
         "clients": app.state.hub.count,
         "ntfy": bool(config.NTFY_TOPIC),
+        "auth": app.state.users is not None,
     }
 
 
@@ -206,6 +245,123 @@ async def put_rule(label: str, body: RuleUpdate):
     except OSError as exc:
         raise HTTPException(status_code=503,
                             detail=f"could not persist rule: {exc}")
+
+
+# ======================================================================
+# Accounts + per-user data (MongoDB). These endpoints 503 when auth is off.
+# The live alert path (/ws, /debug/event, device /rules) is NOT gated — a
+# login must never stand between a user and a smoke alarm.
+# ======================================================================
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=config.SESSION_COOKIE, value=token, httponly=True,
+        samesite="lax", secure=config.SESSION_COOKIE_SECURE,
+        max_age=config.SESSION_TTL_DAYS * 24 * 3600, path="/")
+
+
+class Credentials(BaseModel):
+    username: str
+    password: str
+    display_name: str | None = None
+
+
+@app.post("/auth/register")
+async def register(body: Credentials, request: Request, response: Response):
+    store = auth.get_store(request)
+    if not body.username.strip():
+        raise HTTPException(status_code=422, detail="username is required")
+    try:
+        auth.validate_password(body.password)
+        user = await store.create_user(
+            body.username, auth.hash_password(body.password),
+            body.display_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    # Auto-login on register.
+    token = auth.new_session_token()
+    await store.create_session(user["_id"], auth.hash_token(token),
+                               user_agent="register")
+    _set_session_cookie(response, token)
+    return auth.public_user(user)
+
+
+@app.post("/auth/login")
+async def login(body: Credentials, request: Request, response: Response):
+    store = auth.get_store(request)
+    user = await store.get_user_by_username(body.username)
+    if user is None or not auth.verify_password(body.password,
+                                                user["password_hash"]):
+        # Same message either way: don't reveal which accounts exist.
+        raise HTTPException(status_code=401,
+                            detail="invalid username or password")
+    token = auth.new_session_token()
+    await store.create_session(
+        user["_id"], auth.hash_token(token),
+        user_agent=request.headers.get("user-agent"))
+    _set_session_cookie(response, token)
+    return auth.public_user(user)
+
+
+@app.post("/auth/logout")
+async def logout(request: Request, response: Response):
+    store = auth.get_store(request)
+    token = request.cookies.get(config.SESSION_COOKIE)
+    if token:
+        await store.end_session(auth.hash_token(token))
+    response.delete_cookie(config.SESSION_COOKIE, path="/")
+    return {"ok": True}
+
+
+@app.get("/auth/me")
+async def me(user: dict = Depends(auth.current_user)):
+    return auth.public_user(user)
+
+
+@app.get("/auth/sessions")
+async def my_sessions(request: Request,
+                      user: dict = Depends(auth.current_user)):
+    """This user's login/logout history."""
+    store = auth.get_store(request)
+    return await store.list_sessions(user["_id"])
+
+
+@app.get("/me/rules")
+async def get_my_rules(request: Request,
+                       user: dict = Depends(auth.current_user)):
+    store = auth.get_store(request)
+    return await store.get_user_rules(user["_id"])
+
+
+@app.put("/me/rules/{label}")
+async def put_my_rule(label: str, body: RuleUpdate, request: Request,
+                      user: dict = Depends(auth.current_user)):
+    if body.urgency is not None and body.urgency not in _VALID_URGENCY:
+        raise HTTPException(status_code=422,
+                            detail=f"invalid urgency {body.urgency!r}")
+    store = auth.get_store(request)
+    return await store.set_user_rule(user["_id"], label, body.enabled,
+                                     body.urgency)
+
+
+class Prefs(BaseModel):
+    ntfy_topic: str | None = None
+    shown_categories: list[str] | None = None
+
+
+@app.get("/me/prefs")
+async def get_my_prefs(request: Request,
+                       user: dict = Depends(auth.current_user)):
+    store = auth.get_store(request)
+    return await store.get_prefs(user["_id"])
+
+
+@app.put("/me/prefs")
+async def put_my_prefs(body: Prefs, request: Request,
+                       user: dict = Depends(auth.current_user)):
+    store = auth.get_store(request)
+    return await store.set_prefs(user["_id"],
+                                 body.model_dump(exclude_none=True))
 
 
 def main():

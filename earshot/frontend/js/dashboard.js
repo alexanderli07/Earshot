@@ -15,6 +15,62 @@
     const statusDot = el("dot");
     const statusText = el("stat");
     const feedList = el("feed");
+    /* ---- auth state ---- */
+    const authEl = el("auth");
+    let loggedIn = false;
+    function apiBase() { return httpBase(hostInput.value); }
+    /* When logged in, rules are the user's own (/me/rules); otherwise the
+     * device-global rules (/rules). Same request/response shape either way. */
+    function rulesPath() { return loggedIn ? "/me/rules" : "/rules"; }
+    async function checkAuth() {
+        try {
+            const r = await fetch(`${apiBase()}/auth/me`, { credentials: "same-origin" });
+            if (r.ok) {
+                const user = await r.json();
+                loggedIn = true;
+                renderAuth(user.display_name);
+            }
+            else {
+                loggedIn = false;
+                renderAuth(null);
+            }
+        }
+        catch {
+            loggedIn = false;
+            renderAuth(null);
+        }
+        void loadRules();
+    }
+    function renderAuth(displayName) {
+        authEl.innerHTML = "";
+        if (displayName) {
+            const who = document.createElement("span");
+            who.className = "who";
+            who.textContent = displayName;
+            const out = document.createElement("button");
+            out.type = "button";
+            out.textContent = "Log out";
+            out.addEventListener("click", () => { void logout(); });
+            authEl.append(who, out);
+        }
+        else {
+            const link = document.createElement("a");
+            link.textContent = "Log in";
+            const host = hostInput.value;
+            link.href = host && host !== location.host
+                ? `login.html?host=${encodeURIComponent(host)}` : "login.html";
+            authEl.append(link);
+        }
+    }
+    async function logout() {
+        try {
+            await fetch(`${apiBase()}/auth/logout`, { method: "POST", credentials: "same-origin" });
+        }
+        catch { /* ignore — cookie clears on the server side anyway */ }
+        loggedIn = false;
+        renderAuth(null);
+        void loadRules();
+    }
     /* ---- live feed ---- */
     const seenIds = new Set();
     function addEventRow(ev) {
@@ -185,7 +241,7 @@
         let rules = {};
         let learned = [];
         try {
-            rules = await (await fetch(`${base}/rules`)).json();
+            rules = await (await fetch(`${base}${rulesPath()}`, { credentials: "same-origin" })).json();
         }
         catch { /* backend not reachable yet */ }
         try {
@@ -227,12 +283,14 @@
     }
     async function putRule(label, enabled, urgency) {
         try {
-            await fetch(`${httpBase(hostInput.value)}/rules/${encodeURIComponent(label)}`, {
+            await fetch(`${apiBase()}${rulesPath()}/${encodeURIComponent(label)}`, {
                 method: "PUT",
                 headers: { "content-type": "application/json" },
+                credentials: "same-origin",
                 body: JSON.stringify({ enabled, urgency }),
             });
         }
         catch { /* dropped connection; next load re-syncs */ }
     }
+    void checkAuth();
 })();

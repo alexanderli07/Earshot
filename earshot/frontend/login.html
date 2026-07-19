@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earshot · Sign in</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='9' width='6' height='14' rx='3' fill='%23D93036'/><rect x='8.7' y='4' width='6' height='24' rx='3' fill='%232456D6'/><rect x='17.3' y='7' width='6' height='18' rx='3' fill='%23DB8B00'/><rect x='26' y='11' width='6' height='10' rx='3' fill='%23178A50'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --silence: #ECEFF3; --card: #FFFFFF; --ink: #10151C; --ink-soft: #46515C;
+    --line: #D6DCE3; --alarm: #D93036; --door: #2456D6; --taught: #178A50;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--silence); color: var(--ink);
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  :focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16,21,28,.05);
+    width: min(380px, 100%); padding: 32px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .brand h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+    font-size: 20px; letter-spacing: -0.01em; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px;
+    background: var(--silence); border-radius: 8px; padding: 3px; }
+  .tabs button {
+    flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase; padding: 8px;
+    border: 0; border-radius: 6px; background: none; color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .tabs button.active { background: var(--card); color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16,21,28,.08); }
+  label.fld { display: block; font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-soft); margin: 14px 0 5px; }
+  input {
+    width: 100%; background: var(--silence); border: 1px solid var(--line);
+    color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: 15px;
+    font-family: inherit;
+  }
+  .btn {
+    width: 100%; margin-top: 20px; border: 0; border-radius: 8px; padding: 11px;
+    font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+    background: var(--ink); color: #E8EDF2;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .note { min-height: 18px; margin-top: 12px; font-size: 13px; color: var(--ink-soft); }
+  .note.err { color: var(--alarm); }
+  .note.ok { color: var(--taught); }
+  #dnfield { display: none; }
+  body.mode-register #dnfield { display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+        <rect x="0" y="9" width="6" height="14" rx="3" fill="#D93036"/>
+        <rect x="8.7" y="4" width="6" height="24" rx="3" fill="#2456D6"/>
+        <rect x="17.3" y="7" width="6" height="18" rx="3" fill="#DB8B00"/>
+        <rect x="26" y="11" width="6" height="10" rx="3" fill="#178A50"/>
+      </svg>
+      <h1>EARSHOT</h1>
+    </div>
+
+    <div class="tabs">
+      <button id="tab-login" class="active" type="button">Sign in</button>
+      <button id="tab-register" type="button">Create account</button>
+    </div>
+
+    <form id="form">
+      <label class="fld" for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+
+      <div id="dnfield">
+        <label class="fld" for="display_name">Display name</label>
+        <input id="display_name" name="display_name" autocomplete="name">
+      </div>
+
+      <label class="fld" for="password">Password</label>
+      <input id="password" name="password" type="password"
+             autocomplete="current-password" required minlength="8">
+
+      <button class="btn" id="submit" type="submit">Sign in</button>
+      <div class="note" id="note" role="status"></div>
+    </form>
+  </div>
+
+  <script src="js/shared.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
