@@ -30,6 +30,19 @@ MODEL_PATH = MODEL_DIR / "yamnet.tflite"
 CLASS_MAP_PATH = MODEL_DIR / "yamnet_class_map.csv"
 TAUGHT_STORE_PATH = MODEL_DIR / "taught_sounds.npz"
 
+_DEFAULT_ALARM_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "alarm_demo"
+ALARM_DATA_DIR = Path(os.environ.get("EARSHOT_ALARM_DATA_DIR") or _DEFAULT_ALARM_DATA_DIR)
+ALARM_MODEL_PATH = Path(
+    os.environ.get("EARSHOT_ALARM_MODEL_PATH")
+    or MODEL_DIR / "fire_smoke_alarm_head.npz"
+)
+ALARM_REPORT_PATH = MODEL_DIR / "fire_smoke_alarm_report.json"
+ALARM_EVENT_LABEL = "fire_smoke_alarm"
+ALARM_EVENT_URGENCY = "high"
+ALARM_REPLACED_LABELS = frozenset({"fire_alarm", "smoke_alarm"})
+ALARM_GATE_COUNT = 2
+ALARM_GATE_WINDOW = 8
+
 MODEL_ARTIFACT = Artifact(
     url="https://tfhub.dev/google/lite-model/yamnet/tflite/1?lite-format=tflite",
     path=MODEL_PATH,
@@ -65,3 +78,11 @@ EVENT_MAP = [
     {"label": "microwave", "classes": ["Microwave oven"],
      "threshold": 0.40, "urgency": "low"},
 ]
+
+# Teach mode must never shadow a built-in event identity. Keep the normalized
+# namespace in one place so direct engine callers and the CLI enforce the same
+# contract, including the optional trained alarm head.
+RESERVED_EVENT_LABELS = frozenset({
+    *(entry["label"].strip().casefold() for entry in EVENT_MAP),
+    ALARM_EVENT_LABEL.strip().casefold(),
+})

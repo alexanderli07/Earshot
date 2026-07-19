@@ -7,6 +7,7 @@
 /* Palette per the pitch: red urgent, blue someone-is-here, amber appliance,
  * green taught. */
 const CATEGORY_BY_LABEL = {
+    fire_smoke_alarm: "urgent",
     smoke_alarm: "urgent",
     fire_alarm: "urgent",
     baby_cry: "urgent",

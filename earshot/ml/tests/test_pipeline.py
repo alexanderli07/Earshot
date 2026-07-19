@@ -995,3 +995,70 @@ def test_top_preserves_descending_class_ranking(tmp_path):
         ("class 2", pytest.approx(0.8)),
         ("class 4", pytest.approx(0.7)),
     ]
+
+
+def test_mic_stream_invokes_on_gap_for_dropped_blocks(monkeypatch):
+    """A capture discontinuity must notify downstream via on_gap so
+    cross-window state (detector streaks) can reset."""
+    first_consumed = threading.Event()
+    post_gap_blocks_queued = threading.Event()
+    producer_threads = []
+    real_queue = pipeline.LatestBlockQueue
+
+    class CoordinatedQueue(real_queue):
+        def _wait_for_gap_producer(self, item):
+            if not first_consumed.is_set():
+                first_consumed.set()
+                assert post_gap_blocks_queued.wait(timeout=1)
+            return item
+
+        def get(self, *args, **kwargs):
+            return self._wait_for_gap_producer(super().get(*args, **kwargs))
+
+        def _get_sequenced(self, *args, **kwargs):
+            item = super()._get_sequenced(*args, **kwargs)
+            return self._wait_for_gap_producer(item)
+
+    class FakeInputStream:
+        def __init__(self, **kwargs):
+            self.callback = kwargs["callback"]
+
+        def __enter__(self):
+            self.callback(
+                np.array([[1.0], [2.0]], dtype=np.float32), 2, None, None
+            )
+
+            def produce_gap():
+                assert first_consumed.wait(timeout=1)
+                for values in ([3.0, 4.0], [5.0, 6.0], [7.0, 8.0]):
+                    self.callback(
+                        np.asarray(values, dtype=np.float32).reshape(-1, 1),
+                        2,
+                        None,
+                        None,
+                    )
+                post_gap_blocks_queued.set()
+
+            producer = threading.Thread(target=produce_gap, daemon=True)
+            producer_threads.append(producer)
+            producer.start()
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            producer_threads[0].join(timeout=1)
+            return False
+
+    monkeypatch.setattr(pipeline, "LatestBlockQueue", CoordinatedQueue)
+    monkeypatch.setitem(
+        sys.modules,
+        "sounddevice",
+        types.SimpleNamespace(InputStream=FakeInputStream),
+    )
+    gaps = []
+    windows = pipeline.MicStream(window=4, hop=2, queue_size=2).windows(
+        on_gap=lambda: gaps.append(True))
+
+    next(windows)
+    windows.close()
+
+    assert gaps == [True]

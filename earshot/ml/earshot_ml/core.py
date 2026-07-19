@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from . import config
+from .alarm_model import RollingEvidenceGate, load_optional_alarm_head
 from .pipeline import MicStream, YamNet, clip_windows, load_wav_16k_mono
 
 # ======================================================================
@@ -29,7 +30,7 @@ class Event:
     label: str
     urgency: str          # "high" | "medium" | "low"
     confidence: float
-    source: str           # "pretrained" | "taught"
+    source: str           # "pretrained" | "taught" | "trained"
     timestamp: float      # unix seconds
 
     def to_dict(self):
@@ -63,6 +64,15 @@ class EventDetector:
         self.debounce_s = debounce_s
         self._streaks = {}
         self._last_fired = {}
+
+    def reset(self):
+        """Clear consecutive-window streaks after a capture discontinuity.
+
+        Windows on opposite sides of dropped audio must not chain into one
+        "consecutive" run. Debounce timestamps survive: a gap should not
+        allow an immediate re-fire of a recently fired label.
+        """
+        self._streaks.clear()
 
     def update(self, observations, now=None):
         """Feed one window's observations; returns the list of fired Events.
@@ -291,7 +301,9 @@ class EarshotML:
                  model_path=config.MODEL_PATH,
                  class_map_path=config.CLASS_MAP_PATH,
                  taught_store_path=config.TAUGHT_STORE_PATH,
-                 yamnet=None):
+                 yamnet=None, *,
+                 alarm_model_path=config.ALARM_MODEL_PATH,
+                 alarm_head=None):
         """on_event: callable(dict) invoked per fired event.
         event_queue: queue.Queue that fired event dicts are put on.
         Either or both; no network involved."""
@@ -300,6 +312,21 @@ class EarshotML:
         self.device = device
         self.yamnet = (yamnet if yamnet is not None else
                        YamNet(model_path, class_map_path))
+        self.alarm_head = (
+            alarm_head if alarm_head is not None else
+            load_optional_alarm_head(
+                alarm_model_path,
+                yamnet_model_path=model_path,
+                class_map_path=class_map_path,
+            )
+        )
+        self.alarm_gate = (
+            RollingEvidenceGate(
+                self.alarm_head.gate_count,
+                self.alarm_head.gate_window,
+            )
+            if self.alarm_head is not None else None
+        )
         self.store = TeachStore(path=taught_store_path,
                                 cutoff=config.TAUGHT_SIMILARITY_CUTOFF)
         self.detector = EventDetector(debounce_s=config.DEBOUNCE_SECONDS)
@@ -310,6 +337,11 @@ class EarshotML:
         name_to_idx = {n: i for i, n in enumerate(self.yamnet.class_names)}
         specs = []
         for entry in config.EVENT_MAP:
+            if (
+                self.alarm_head is not None
+                and entry["label"] in config.ALARM_REPLACED_LABELS
+            ):
+                continue
             indices = []
             for cls in entry["classes"]:
                 if cls in name_to_idx:
@@ -340,6 +372,18 @@ class EarshotML:
                 source="pretrained",
                 consecutive=config.CONSECUTIVE_WINDOWS,
             ))
+        if self.alarm_head is not None:
+            alarm_score = self.alarm_head.score(embedding)
+            observations.append(Observation(
+                label=self.alarm_head.label,
+                confidence=alarm_score,
+                above=self.alarm_gate.update(
+                    alarm_score >= self.alarm_head.threshold
+                ),
+                urgency=self.alarm_head.urgency,
+                source="trained",
+                consecutive=1,
+            ))
         match = self.store.match(embedding)
         if match is not None:
             name, similarity = match
@@ -359,8 +403,14 @@ class EarshotML:
     def run(self, stop_event=None):
         """Block on mic windows until the stream ends or is stopped."""
         for waveform in MicStream(device=self.device).windows(
-                stop_event=stop_event):
+                stop_event=stop_event, on_gap=self._reset_after_capture_gap):
             self.process_window(waveform)
+
+    def _reset_after_capture_gap(self):
+        """Clear consecutive evidence while preserving event debounce."""
+        self.detector.reset()
+        if self.alarm_gate is not None:
+            self.alarm_gate.reset()
 
     def _emit(self, event):
         payload = event.to_dict()
@@ -379,12 +429,9 @@ class EarshotML:
         name = name.strip()
         if not name:
             raise ValueError("teach name must be a non-empty string")
-        reserved_names = {
-            entry["label"].strip().casefold() for entry in config.EVENT_MAP
-        }
-        if name.casefold() in reserved_names:
+        if name.casefold() in config.RESERVED_EVENT_LABELS:
             raise ValueError(
-                f"teach name {name!r} conflicts with a pretrained label")
+                f"teach name {name!r} conflicts with a reserved event label")
 
         try:
             clip_list = list(clips)

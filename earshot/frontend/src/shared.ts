@@ -9,7 +9,7 @@ interface EarshotEvent {
   label: string;
   urgency: "high" | "medium" | "low" | string;
   confidence?: number;
-  source?: "pretrained" | "taught" | "debug" | string;
+  source?: "pretrained" | "trained" | "taught" | "debug" | string;
   timestamp?: number;
   received_at?: number;
 }
@@ -19,6 +19,7 @@ type Category = "urgent" | "presence" | "appliance" | "taught";
 /* Palette per the pitch: red urgent, blue someone-is-here, amber appliance,
  * green taught. */
 const CATEGORY_BY_LABEL: Record<string, Category> = {
+  fire_smoke_alarm: "urgent",
   smoke_alarm: "urgent",
   fire_alarm: "urgent",
   baby_cry: "urgent",

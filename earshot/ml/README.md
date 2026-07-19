@@ -68,6 +68,42 @@ across threads. These locks are instance-local, not cross-process: use one
 writer process per `EARSHOT_MODEL_DIR` to avoid last-writer-wins updates from
 simultaneous `teach` or `forget` commands.
 
+### Trained fire/smoke alarm flow
+
+The optional `fire_smoke_alarm` detector is a small transfer-learning head on
+top of the same frozen YAMNet embeddings:
+
+1. `collect` copies validated WAVs or records microphone clips into
+   `data/alarm_demo/{alarm,not_alarm}` without modifying the source files.
+2. Training retains at most 40 deterministic windows per recording for fitting
+   and augmentation, but evaluates every contiguous runtime window.
+3. Five grouped folds keep a source group entirely in training or validation.
+4. A deterministic logistic regression fits standardized 1,024-value YAMNet
+   embeddings. The final NPZ contains only the small head and compatibility
+   metadata; YAMNet itself is never retrained.
+5. Runtime fires after at least two qualifying windows among the most recent
+   eight, then applies the normal 10-second source-aware debounce.
+
+When a compatible head is present, it replaces only the generic
+`smoke_alarm`/`fire_alarm` mappings with one shared high-urgency trained event.
+All unrelated pretrained and taught events remain active. With no head, the
+legacy labels behave exactly as before. A present but corrupt or checksum-
+incompatible head fails startup clearly rather than silently falling back.
+
+The mandatory training ceilings are complete positive-source-group recall, no
+more than 20% of negative source groups triggered, and at most 0.5 false events
+per minute of negative audio. Both grouped OOF predictions and the fitted final
+head must satisfy them. OOF predictions are also used to select the threshold,
+so they are internal validation, not an untouched held-out test. Evaluation on
+the training corpus is explicitly labeled `in_sample`.
+
+The current tracked demo corpus contains 7 alarm and 10 negative WAVs and has
+no `manifest.json`. A seed-0 run measured 7/7 positive groups, 1/10 negative
+groups, and 0.207 false events/minute OOF; the fitted-head in-sample result was
+7/7 and 0/10. `Clapping_sound_effect.wav` was the sole OOF-triggered negative
+and produced two events. This is a small demo result, not evidence of
+generalization to unseen alarms.
+
 ## Requirements
 
 - CPython 3.10 through 3.14 (`>=3.10,<3.15`) on non-`armv7l`
@@ -89,7 +125,7 @@ Run these commands from this `ml` directory. Use `python`, not `py` or
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install ".[test]"
+python -m pip install -e ".[test,train]"
 earshot --help
 ```
 
@@ -98,7 +134,7 @@ and use the executables directly:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install ".[test]"
+.\.venv\Scripts\python.exe -m pip install -e ".[test,train]"
 .\.venv\Scripts\earshot.exe --help
 ```
 
@@ -108,7 +144,7 @@ For a persistent writable model and taught-state directory, set
 ```powershell
 $env:EARSHOT_MODEL_DIR = Join-Path $env:LOCALAPPDATA "Earshot\models"
 New-Item -ItemType Directory -Force $env:EARSHOT_MODEL_DIR | Out-Null
-earshot download
+.\.venv\Scripts\earshot.exe download
 ```
 
 Without the override, a source checkout uses this directory's `models`
@@ -125,7 +161,7 @@ sudo apt install -y python3 python3-venv libportaudio2 portaudio19-dev alsa-util
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install ".[test]"
+python -m pip install -e .
 
 export EARSHOT_MODEL_DIR="$HOME/.local/share/earshot/models"
 mkdir -p "$EARSHOT_MODEL_DIR"
@@ -196,8 +232,11 @@ python -m pytest -m "not integration" -q
 ```
 
 The fast suite uses fakes and temporary files. It does not download the model,
-open a microphone, or require hardware. GitHub Actions runs this command on
-Ubuntu with Python 3.11 and 3.14.
+open a microphone, or require hardware. Some synthetic training tests execute
+scikit-learn, so Windows development and CI install `.[test,train]`. A separate
+CI smoke job installs runtime dependencies only and proves normal import/help
+does not require scikit-learn. GitHub Actions runs the fast command on Ubuntu
+with Python 3.11 and 3.14.
 
 After `earshot download`, verify the actual production model contract:
 
@@ -210,9 +249,20 @@ checks finite `(521,)` scores, a finite `(1024,)` embedding, and 521 class
 names. If either artifact is absent, it skips with
 `run earshot download first`.
 
-Neither automated suite validates a real microphone, room acoustics, device
-gain, end-to-end event latency, or false-positive rate. Use the manual
-acceptance procedure below on the target hardware.
+After populating the demo corpus, run the real-data acceptance test:
+
+```text
+python -m pytest tests/test_alarm_corpus.py -q -s
+```
+
+It trains to a temporary directory, checks OOF/final/in-sample ceilings,
+reports triggered negatives, verifies full-window coverage, and streams hashes
+before and after so training cannot silently alter a WAV or manifest.
+
+None of these automated checks validates a real microphone, room acoustics,
+device gain, end-to-end event latency, or live-room/target-hardware false-
+positive rate. Use the manual acceptance procedure below on the target
+hardware.
 
 ## Command-line operation
 
@@ -223,10 +273,13 @@ directory, replace `earshot` with `python cli.py` to use the wrapper.
 | --- | --- |
 | `earshot download` | Download, checksum, and validate the model and class map. |
 | `earshot top5 [--device INDEX]` | Print live peak level and the top five YAMNet classes. |
-| `earshot run [--device INDEX]` | Run configured pretrained and taught event detection. |
+| `earshot run [--device INDEX]` | Run configured pretrained, trained-alarm, and taught event detection. |
 | `earshot teach NAME [WAV ...] [--record N] [--seconds S] [--device INDEX]` | Teach a sound from WAV files, microphone recordings, or both. |
 | `earshot sounds` | List taught names and stored clip counts. |
 | `earshot forget NAME` | Remove every stored clip for one taught name. |
+| `earshot collect {alarm,not_alarm} [WAV ...] [--record N] [--seconds S] [--device INDEX] [--source-group NAME]` | Safely import or record labeled alarm-training clips. |
+| `earshot train-alarm [--data-dir PATH] [--output PATH] [--seed N]` | Cross-validate and install the small trained alarm head. |
+| `earshot evaluate-alarm [--data-dir PATH] [--model PATH]` | Score a corpus with an existing compatible head. |
 
 `sounds` and `forget` access only the NPZ store. They intentionally do not
 load YAMNet, a LiteRT backend, the class map, or a microphone.
@@ -265,8 +318,9 @@ earshot run --device 3
 ```
 
 `top5` is useful for device selection, gain checks, and discovering which
-YAMNet class responds to a sound. `run` prints fired event dictionaries as
-JSON. Both block until **Ctrl+C**.
+YAMNet class responds to a sound. When a compatible trained head exists it
+also appends `fire_smoke_alarm <score>` once per window. `run` prints fired
+event dictionaries as JSON. Both block until **Ctrl+C**.
 
 ### Teach from files or the microphone
 
@@ -279,17 +333,71 @@ earshot forget kettle
 
 Provide at least one WAV path or a positive `--record` count. Names are
 trimmed, must not be empty, and cannot collide case-insensitively with a
-configured pretrained event label such as `smoke_alarm` or `doorbell`.
+configured event label such as `smoke_alarm`, `fire_smoke_alarm`, or `doorbell`.
 Record examples at the expected distance and against representative room
 noise.
 
+### Collect and train an alarm corpus
+
+Use an external directory for new, private, or personally recorded audio:
+
+```powershell
+$alarmDataDir = Join-Path $env:LOCALAPPDATA 'Earshot\alarm_demo'
+$env:EARSHOT_ALARM_DATA_DIR = $alarmDataDir
+
+earshot collect alarm .\incoming\alarm-1.wav --source-group detector-a
+earshot collect alarm --record 3 --seconds 5 --device 1 `
+  --source-group detector-b-session-1
+earshot collect not_alarm .\incoming\timer.wav --source-group timer-a
+earshot train-alarm --data-dir $alarmDataDir
+earshot evaluate-alarm --data-dir $alarmDataDir
+```
+
+`collect` accepts PCM WAV input. It validates the complete batch before
+installing anything, copies validated file inputs byte-for-byte, writes
+microphone captures as canonical 16 kHz mono PCM, skips exact duplicates, and
+never moves or edits the supplied source. Training downmixes/resamples when it
+reads a recording. Related clips, edits, or captures from one original
+recording/device session must share one `source_group`; otherwise they can leak
+across grouped folds.
+
+For manually organized data, add `manifest.json`:
+
+```json
+{
+  "version": 1,
+  "entries": [
+    {
+      "path": "alarm/example.wav",
+      "label": "alarm",
+      "source_group": "detector-model-a-source-1",
+      "segments": [[3.2, 8.7]]
+    }
+  ]
+}
+```
+
+Positive `segments` should cover only alarm-active time, especially in files
+with speech or music. A group cannot contain both labels, and five-fold
+training needs at least five independent source groups per label. Useful hard
+negatives include timers, phone alarms, microwave/appliance beeps, sirens,
+security/car alarms, whistles, music, speech, clapping, and room ambience.
+
+The 17 WAVs currently tracked under `data/alarm_demo` are a frozen demo-data
+exception. Preserve them exactly; do not edit, move, delete, or silently
+relabel them. They lack a manifest, source URLs, licensing/attribution records,
+and difficult tonal-negative coverage. `WAVs.zip` is also tracked at repository
+root. Review provenance before redistributing any corpus asset.
+
 ## Model and taught-state location
 
-`EARSHOT_MODEL_DIR` controls all three runtime files:
+`EARSHOT_MODEL_DIR` controls the runtime directory containing:
 
 - `yamnet.tflite`
 - `yamnet_class_map.csv`
 - `taught_sounds.npz`
+- `fire_smoke_alarm_head.npz`
+- `fire_smoke_alarm_report.json` (Windows training evidence only)
 
 If the variable is unset, the default is `ml/models` in a source checkout.
 For an installed service, set an absolute, writable, persistent directory.
@@ -297,6 +405,11 @@ Set the variable before Python starts because the paths are resolved when
 `earshot_ml.config` is imported. Moving to a different directory also moves
 the apparent taught-sound state; point all commands and the backend at the
 same directory.
+
+`EARSHOT_ALARM_DATA_DIR` overrides the training corpus, and
+`EARSHOT_ALARM_MODEL_PATH` overrides the deployed head. The head embeds the
+pinned YAMNet/model-map checksums. Copy the NPZ to the Pi only alongside the
+matching artifacts; the Pi does not need the JSON report or scikit-learn.
 
 ## Backend integration
 
@@ -374,25 +487,27 @@ Each fired event is a dictionary with the existing public shape:
 
 ```json
 {
-  "label": "smoke_alarm",
+  "label": "fire_smoke_alarm",
   "urgency": "high",
-  "confidence": 0.62,
-  "source": "pretrained",
+  "confidence": 0.997,
+  "source": "trained",
   "timestamp": 1752969600.0
 }
 ```
 
-- `label`: configured pretrained label or operator-supplied taught name.
+- `label`: configured pretrained/trained label or operator-supplied taught name.
 - `urgency`: configured `high`, `medium`, or `low` value.
 - `confidence`: rounded to three decimals for compatibility.
-- `source`: `pretrained` or `taught`.
+- `source`: `pretrained`, `trained`, or `taught`.
 - `timestamp`: Unix seconds at the detector firing time.
 
 `confidence` is not a calibrated probability. For pretrained events it is
 the maximum raw YAMNet score across the classes mapped to that event. For
 taught events it is cosine similarity between the live normalized embedding
 and the nearest stored clip vector. Those values have different meanings and
-should not be compared directly across sources.
+should not be compared directly across sources. For the trained event it is
+the fitted logistic-head score and must be interpreted against the threshold
+stored in that exact artifact.
 
 ## Tuning and calibration
 
@@ -422,14 +537,16 @@ Run this procedure on the actual Pi, microphone, placement, and room:
 1. Run `python -m sounddevice`, select the intended input, and pass its index
    explicitly.
 2. Run `earshot top5 --device INDEX`; confirm normal sounds produce a useful,
-   unclipped peak level.
-3. From two metres away, play representative doorbell and smoke/fire-alarm
-   clips through the intended playback source.
+   unclipped peak level and, when deployed, a trained alarm score.
+3. From two metres away, play at least three held-out smoke/fire-alarm sources
+   that were not used for training, through the intended playback source.
 4. Run `earshot run --device INDEX` and measure sound-onset-to-event latency
    for repeated trials.
-5. Record three examples of a new sound, then verify a separate later example
-   is recognized.
-6. Run at least five minutes of representative ambient room audio and record
+5. Play difficult tonal negatives such as timers, phone/appliance beeps,
+   whistles, music, and sirens; record every false event.
+6. Record three examples of a new taught sound, then verify a separate later
+   example is recognized.
+7. Run at least five minutes of representative ambient room audio and record
    every false event.
 
 The project target is for configured events to be observed in under two
@@ -458,7 +575,7 @@ deployment, never as a guaranteed bound.
 Activate the intended `.venv` and reinstall the package with its test extra:
 
 ```text
-python -m pip install ".[test]"
+python -m pip install -e ".[test,train]"
 ```
 
 On Windows, `Get-Command python` should point into
@@ -504,8 +621,9 @@ tuning model thresholds.
 
 ### Teach rejects a name or asks for clips
 
-Use a non-empty name that does not collide with a configured pretrained label.
-Provide one or more WAV paths, a positive `--record N`, or both.
+Use a non-empty name that does not collide with any reserved configured or
+trained label, including `fire_smoke_alarm`. Provide one or more WAV paths, a
+positive `--record N`, or both.
 
 ### Taught store is corrupt or incompatible
 

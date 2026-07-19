@@ -4,8 +4,11 @@ import argparse
 import json
 import math
 import time
+from pathlib import Path
 
 from . import config
+from .alarm_data import AlarmDataError, collect_files, collect_recordings
+from .alarm_model import AlarmModelError, load_optional_alarm_head
 from .artifacts import ArtifactError, download_artifact
 from .core import EarshotML, TeachStore, TeachStoreError
 from .pipeline import (AudioDeviceError, AudioFileError,
@@ -15,6 +18,18 @@ from .pipeline import (AudioDeviceError, AudioFileError,
 
 class CLIError(RuntimeError):
     """An expected command-line usage error that does not need a traceback."""
+
+
+def _train_alarm(*args, **kwargs):
+    from .alarm_training import train_alarm
+
+    return train_alarm(*args, **kwargs)
+
+
+def _evaluate_alarm(*args, **kwargs):
+    from .alarm_training import evaluate_alarm
+
+    return evaluate_alarm(*args, **kwargs)
 
 
 def cmd_download(args):
@@ -31,12 +46,22 @@ def cmd_download(args):
 
 def cmd_top5(args):
     yamnet = YamNet(config.MODEL_PATH, config.CLASS_MAP_PATH)
+    alarm_head = load_optional_alarm_head(
+        config.ALARM_MODEL_PATH,
+        yamnet_model_path=config.MODEL_PATH,
+        class_map_path=config.CLASS_MAP_PATH,
+    )
     print("listening... Ctrl-C to stop")
     for waveform in MicStream(device=args.device).windows():
-        scores, _ = yamnet.infer(waveform)
+        scores, embedding = yamnet.infer(waveform)
         top = "  |  ".join(
             f"{name} {score:.2f}" for name, score in yamnet.top(scores, k=5)
         )
+        if alarm_head is not None:
+            top += (
+                "  |  fire_smoke_alarm "
+                f"{alarm_head.score(embedding):.2f}"
+            )
         peak = float(abs(waveform).max())
         print(f"\rpeak {peak:.2f}  {top:<120}", end="", flush=True)
 
@@ -52,6 +77,7 @@ def cmd_run(args):
         model_path=config.MODEL_PATH,
         class_map_path=config.CLASS_MAP_PATH,
         taught_store_path=config.TAUGHT_STORE_PATH,
+        alarm_model_path=config.ALARM_MODEL_PATH,
     )
     learned = engine.learned_sounds()
     if learned:
@@ -64,12 +90,15 @@ def _validated_teach_name(name):
     trimmed = name.strip()
     if not trimmed:
         raise CLIError("teach name must be a non-empty string")
-    reserved_names = {
-        entry["label"].strip().casefold() for entry in config.EVENT_MAP
-    }
-    if trimmed.casefold() in reserved_names:
+    normalized = trimmed.casefold()
+    if normalized in config.RESERVED_EVENT_LABELS:
+        label_kind = (
+            "trained alarm"
+            if normalized == config.ALARM_EVENT_LABEL.strip().casefold()
+            else "pretrained"
+        )
         raise CLIError(
-            f"teach name {trimmed!r} conflicts with a pretrained label"
+            f"teach name {trimmed!r} conflicts with a {label_kind} label"
         )
     return trimmed
 
@@ -125,6 +154,89 @@ def cmd_forget(args):
     print(f"removed {removed} clips of {args.name!r}")
 
 
+def _before_alarm_capture(index, count, seconds):
+    input(
+        "press Enter, then make the sound "
+        f"(clip {index}/{count}, {seconds:g}s)... "
+    )
+    time.sleep(0.2)
+
+
+def cmd_collect(args):
+    if args.record < 0:
+        raise CLIError("--record must be a non-negative integer")
+    minimum_seconds = config.WINDOW_SAMPLES / config.SAMPLE_RATE
+    if (
+        not math.isfinite(args.seconds)
+        or args.seconds < minimum_seconds
+    ):
+        raise CLIError(
+            "--seconds must record at least one model window "
+            f"({minimum_seconds:g})"
+        )
+    if not args.wavs and args.record <= 0:
+        raise CLIError("give wav files or --record N")
+
+    stored = []
+    if args.wavs:
+        stored.extend(
+            collect_files(
+                args.label,
+                args.wavs,
+                args.data_dir,
+                source_group=args.source_group,
+            )
+        )
+    if args.record:
+        stored.extend(
+            collect_recordings(
+                args.label,
+                args.record,
+                args.seconds,
+                args.data_dir,
+                source_group=args.source_group,
+                device=args.device,
+                recorder=record,
+                before_capture=_before_alarm_capture,
+            )
+        )
+    for path in stored:
+        print(f"  {path}")
+    print(f"stored {len(stored)} clips")
+
+
+def cmd_train_alarm(args):
+    output = Path(args.output)
+    report_path = (
+        Path(config.ALARM_REPORT_PATH)
+        if output == Path(config.ALARM_MODEL_PATH)
+        else output.with_name("fire_smoke_alarm_report.json")
+    )
+    report = _train_alarm(
+        args.data_dir,
+        output,
+        report_path,
+        seed=args.seed,
+    )
+    metrics = report.oof_metrics
+    print(
+        f"trained fire_smoke_alarm threshold "
+        f"{report.deployment_threshold:.3f}; "
+        f"recall {metrics.positive_groups_triggered}/"
+        f"{metrics.positive_groups_total}; "
+        f"negative groups {metrics.negative_groups_triggered}/"
+        f"{metrics.negative_groups_total}; "
+        f"false triggers/min {metrics.false_triggers_per_minute:.3f}"
+    )
+
+
+def cmd_evaluate_alarm(args):
+    report = _evaluate_alarm(args.data_dir, args.model)
+    for item in report.metrics.files:
+        print(f"  {item['label']:<9} {item['triggered']!s:<5} {item['path']}")
+    print(json.dumps(report.payload, sort_keys=True))
+
+
 def _build_parser():
     parser = argparse.ArgumentParser(
         description="One CLI for Earshot's offline sound detection pipeline."
@@ -165,6 +277,37 @@ def _build_parser():
     forget.add_argument("name")
     forget.set_defaults(fn=cmd_forget)
 
+    collect = subparsers.add_parser("collect")
+    collect.add_argument("label", choices=("alarm", "not_alarm"))
+    collect.add_argument("wavs", nargs="*", type=Path, metavar="WAV")
+    collect.add_argument("--record", type=int, default=0, metavar="N")
+    collect.add_argument("--seconds", type=float, default=5.0, metavar="S")
+    collect.add_argument("--device", type=int, default=None, metavar="INDEX")
+    collect.add_argument(
+        "--data-dir", type=Path, default=config.ALARM_DATA_DIR, metavar="PATH"
+    )
+    collect.add_argument("--source-group", default=None, metavar="NAME")
+    collect.set_defaults(fn=cmd_collect)
+
+    train_alarm = subparsers.add_parser("train-alarm")
+    train_alarm.add_argument(
+        "--data-dir", type=Path, default=config.ALARM_DATA_DIR, metavar="PATH"
+    )
+    train_alarm.add_argument(
+        "--output", type=Path, default=config.ALARM_MODEL_PATH, metavar="PATH"
+    )
+    train_alarm.add_argument("--seed", type=int, default=0)
+    train_alarm.set_defaults(fn=cmd_train_alarm)
+
+    evaluate_alarm = subparsers.add_parser("evaluate-alarm")
+    evaluate_alarm.add_argument(
+        "--data-dir", type=Path, default=config.ALARM_DATA_DIR, metavar="PATH"
+    )
+    evaluate_alarm.add_argument(
+        "--model", type=Path, default=config.ALARM_MODEL_PATH, metavar="PATH"
+    )
+    evaluate_alarm.set_defaults(fn=cmd_evaluate_alarm)
+
     return parser
 
 
@@ -184,6 +327,8 @@ def main(argv=None):
         CLIError,
         AudioDeviceError,
         AudioFileError,
+        AlarmDataError,
+        AlarmModelError,
         InterpreterBackendError,
         ModelContractError,
         TeachStoreError,

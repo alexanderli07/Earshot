@@ -6,7 +6,7 @@
 (() => {
 
 const BASE_SOUNDS = [
-  "smoke_alarm", "fire_alarm", "doorbell", "knock",
+  "fire_smoke_alarm", "smoke_alarm", "fire_alarm", "doorbell", "knock",
   "baby_cry", "glass_break", "microwave",
 ];
 const FEED_LIMIT = 100;
@@ -139,14 +139,17 @@ teachButton.addEventListener("click", () => {
         body: form,
       });
       const result = await response.json() as
-        { ok: boolean; learned?: { name: string }[]; error?: string };
-      if (result.ok) {
+        { ok?: boolean; learned?: { name: string }[]; detail?: string };
+      if (response.ok && result.ok) {
         const names = (result.learned ?? []).map((s) => s.name).join(", ");
         setNote(`Learned "${nameInput.value.trim()}". Known: ${names}`, "ok");
         resetTeach();
         void loadRules();
       } else {
-        setNote(`Teach failed: ${result.error ?? "unknown"}`, "err");
+        // Backend reports failures as HTTP errors with a `detail` message
+        // (422 bad clips, 503 ML unavailable, 504 timeout).
+        setNote(`Teach failed: ${result.detail ?? response.statusText}`, "err");
+        teachButton.disabled = false;
       }
     } catch (err) {
       setNote(`Network error: ${(err as Error).message}`, "err");
