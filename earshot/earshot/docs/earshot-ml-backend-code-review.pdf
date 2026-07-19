@@ -1,0 +1,587 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Lang (en-US) /ViewerPreferences << /DisplayDocTitle true >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 8 /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 5073 >>
+stream
+1 J 1 j
+q 1.000 1.000 1.000 rg 0.00 0.00 595.28 841.89 re f Q
+q 0.055 0.102 0.180 rg 0.00 575.00 595.28 266.89 re f Q
+q 0.082 0.369 0.620 rg 38.00 782.00 36.00 36.00 re f Q
+BT /F2 17.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 49.00 792.00 Tm (E) Tj ET
+BT /F2 8.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 86.00 806.00 Tm (SYNCHRONIZED ENGINEERING REVIEW) Tj ET
+BT /F2 25.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 38.00 735.00 Tm (Earshot ML & Backend Code Review) Tj ET
+BT /F1 10.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 38.00 706.00 Tm (Synchronized review ∑ alexanderli07/Earshot ∑ main @ 8fac3c9) Tj ET
+q 0.360 0.520 0.720 RG 0.80 w 38.00 686.00 m 557.28 686.00 l S Q
+BT /F2 7.40 Tf 0.670 0.780 0.910 rg 1 0 0 1 38.00 659.00 Tm (RELEASE RECOMMENDATION) Tj ET
+BT /F2 22.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 38.00 631.00 Tm (NO-GO) Tj ET
+BT /F1 9.60 Tf 1.000 1.000 1.000 rg 1 0 0 1 130.00 641.40 Tm (Hold unattended and safety-adjacent release until the minimum blockers on page 8 are closed.) Tj ET
+BT /F2 16.50 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 540.00 Tm (Executive summary) Tj ET
+BT /F1 9.40 Tf 0.102 0.137 0.196 rg 1 0 0 1 38.00 510.60 Tm (The offline ML core is materially hardened, but the deployed backend exposes an unauthenticated control plane and cannot) Tj ET
+BT /F1 9.40 Tf 0.102 0.137 0.196 rg 1 0 0 1 38.00 498.40 Tm (guarantee alarm priority, truthful delivery status, supervised microphone liveness, bounded/private teaching, or its) Tj ET
+BT /F1 9.40 Tf 0.102 0.137 0.196 rg 1 0 0 1 38.00 486.20 Tm (configured visual cues. These failures can suppress or misreport safety-adjacent alerts even while health appears green.) Tj ET
+q 0.706 0.137 0.094 rg 38.00 414.00 166.43 55.00 re f Q
+BT /F2 17.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 49.00 449.00 Tm (6) Tj ET
+BT /F2 7.20 Tf 1.000 1.000 1.000 rg 1 0 0 1 49.00 424.00 Tm (CRITICAL) Tj ET
+q 0.690 0.278 0.027 rg 214.43 414.00 166.43 55.00 re f Q
+BT /F2 17.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 225.43 449.00 Tm (6) Tj ET
+BT /F2 7.20 Tf 1.000 1.000 1.000 rg 1 0 0 1 225.43 424.00 Tm (HIGH) Tj ET
+q 0.082 0.369 0.620 rg 390.85 414.00 166.43 55.00 re f Q
+BT /F2 17.00 Tf 1.000 1.000 1.000 rg 1 0 0 1 401.85 449.00 Tm (3) Tj ET
+BT /F2 7.20 Tf 1.000 1.000 1.000 rg 1 0 0 1 401.85 424.00 Tm (MODERATE) Tj ET
+BT /F2 12.50 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 382.00 Tm (MVP context) Tj ET
+q 0.965 0.973 0.984 rg 38.00 288.00 254.64 78.00 re f Q
+q 0.027 0.408 0.251 rg 38.00 288.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 288.00 254.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 51.00 345.00 Tm (Offline Raspberry Pi) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 329.10 Tm (Local 16 kHz YAMNet inference after the one-time pinned) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 319.10 Tm (artifact download.) Tj ET
+q 0.965 0.973 0.984 rg 302.64 288.00 254.64 78.00 re f Q
+q 0.082 0.369 0.620 rg 302.64 288.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 302.64 288.00 254.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 315.64 345.00 Tm (Under two seconds) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 315.64 329.10 Tm (An acceptance target to measure on the actual Pi, microphone,) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 315.64 319.10 Tm (room, and callback load; not a proven bound.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 195.00 254.64 78.00 re f Q
+q 0.690 0.278 0.027 rg 38.00 195.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 195.00 254.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 51.00 252.00 Tm (Three-clip teaching) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 236.10 Tm (The product contract says three clips. Current backend and) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 226.10 Tm (engine accept any non-empty count.) Tj ET
+q 0.965 0.973 0.984 rg 302.64 195.00 254.64 78.00 re f Q
+q 0.706 0.137 0.094 rg 302.64 195.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 302.64 195.00 254.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 315.64 252.00 Tm (Safety and accessibility) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 315.64 236.10 Tm (Not certified and must not replace approved alarms. Visual and) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 315.64 226.10 Tm (vibration semantics still need dependable implementation.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 120.00 519.28 53.00 re f Q
+q 0.055 0.102 0.180 rg 38.00 120.00 5.00 53.00 re f Q
+BT /F2 7.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 53.00 151.00 Tm (BOTTOM LINE) Tj ET
+BT /F1 8.40 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 134.60 Tm (The strongest code is in ML contract and persistence handling; the release risk is concentrated at the backend control, lifecycle,) Tj ET
+BT /F1 8.40 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 123.90 Tm (output arbitration, and delivery boundaries.) Tj ET
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (1 / 8) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 6595 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 452.87 812.00 Tm (REVIEW BASIS & VALIDATION) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (2 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (EVIDENCE) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Synchronization and validation status) Tj ET
+q 0.965 0.973 0.984 rg 38.00 555.00 519.28 179.00 re f Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 555.00 519.28 179.00 re S Q
+BT /F2 6.80 Tf 0.344 0.392 0.474 rg 1 0 0 1 52.00 721.00 Tm (REMOTE) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 122.00 721.00 Tm (origin = github.com/alexanderli07/Earshot.git) Tj ET
+q 0.027 0.408 0.251 rg 491.22 716.00 51.06 16.00 re f Q
+BT /F2 6.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 498.22 721.00 Tm (CONFIRMED) Tj ET
+q 0.831 0.851 0.882 RG 0.45 w 50.00 702.00 m 545.28 702.00 l S Q
+BT /F2 6.80 Tf 0.344 0.392 0.474 rg 1 0 0 1 52.00 688.00 Tm (SNAPSHOT) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 122.00 688.00 Tm (branch main ∑ commit 8fac3c9df26e603f9fea34754a07b5abc31ab9e8) Tj ET
+q 0.027 0.408 0.251 rg 505.34 683.00 36.94 16.00 re f Q
+BT /F2 6.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 512.34 688.00 Tm (PINNED) Tj ET
+q 0.831 0.851 0.882 RG 0.45 w 50.00 669.00 m 545.28 669.00 l S Q
+BT /F2 6.80 Tf 0.344 0.392 0.474 rg 1 0 0 1 52.00 655.00 Tm (LINE BASIS) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 122.00 655.00 Tm (All cited files reviewed against the same local commit.) Tj ET
+q 0.027 0.408 0.251 rg 501.09 650.00 41.19 16.00 re f Q
+BT /F2 6.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 508.09 655.00 Tm (ALIGNED) Tj ET
+q 0.831 0.851 0.882 RG 0.45 w 50.00 636.00 m 545.28 636.00 l S Q
+BT /F2 6.80 Tf 0.344 0.392 0.474 rg 1 0 0 1 52.00 622.00 Tm (PRE-PDF TREE) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 122.00 622.00 Tm (git status --short --untracked-files=all returned empty.) Tj ET
+q 0.027 0.408 0.251 rg 507.02 617.00 35.26 16.00 re f Q
+BT /F2 6.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 514.02 622.00 Tm (CLEAN) Tj ET
+q 0.831 0.851 0.882 RG 0.45 w 50.00 603.00 m 545.28 603.00 l S Q
+BT /F2 6.80 Tf 0.344 0.392 0.474 rg 1 0 0 1 52.00 589.00 Tm (NETWORK) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 122.00 589.00 Tm (No fetch or external request; synchronization is commit-pinned.) Tj ET
+q 0.027 0.408 0.251 rg 488.11 584.00 54.17 16.00 re f Q
+BT /F2 6.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 495.11 589.00 Tm (LOCAL ONLY) Tj ET
+BT /F2 12.80 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 526.00 Tm (Fresh automated validation) Tj ET
+q 0.965 0.973 0.984 rg 38.00 431.00 253.64 78.00 re f Q
+q 0.027 0.408 0.251 rg 38.00 431.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 431.00 253.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 51.00 488.00 Tm (ML fast suite) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 472.10 Tm (176 passed ∑ 1 integration test deselected ∑ 0 failures. Ran) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 51.00 462.10 Tm (locally with bytecode and pytest cache disabled.) Tj ET
+q 0.965 0.973 0.984 rg 303.64 431.00 253.64 78.00 re f Q
+q 0.027 0.408 0.251 rg 303.64 431.00 4.00 78.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 303.64 431.00 253.64 78.00 re S Q
+BT /F2 9.30 Tf 0.055 0.102 0.180 rg 1 0 0 1 316.64 488.00 Tm (Backend suite) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 316.64 472.10 Tm (8 passed ∑ 0 failures. One third-party TestClient deprecation) Tj ET
+BT /F1 7.90 Tf 0.102 0.137 0.196 rg 1 0 0 1 316.64 462.10 Tm (warning; no network or hardware used.) Tj ET
+q 1.000 0.973 0.929 rg 38.00 365.00 519.28 49.00 re f Q
+q 0.690 0.278 0.027 rg 38.00 365.00 5.00 49.00 re f Q
+BT /F2 7.10 Tf 0.690 0.278 0.027 rg 1 0 0 1 53.00 393.00 Tm (NOT EXERCISED) Tj ET
+BT /F1 8.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 378.00 Tm (Production model integration, target Pi/microphone, GPIO patterns, ntfy delivery, and end-to-end latency were not exercised. The) Tj ET
+BT /F1 8.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 368.00 Tm (under-two-second goal remains unvalidated hardware acceptance.) Tj ET
+BT /F2 12.80 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 337.00 Tm (ML assessment) Tj ET
+BT /F2 10.20 Tf 0.027 0.408 0.251 rg 1 0 0 1 38.00 316.00 Tm (No critical tensor/window/WAV/model/store consistency defect found.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 240.00 519.28 47.00 re f Q
+q 0.082 0.369 0.620 rg 38.00 240.00 4.00 47.00 re f Q
+BT /F2 6.80 Tf 0.082 0.369 0.620 rg 1 0 0 1 51.00 272.00 Tm (CONTRACTS) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 274.30 Tm (Finite 15,600-sample waveform input; one float32 521-score output, one float32 1,024-embedding output, and exactly) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 264.90 Tm (521 class-map rows.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 183.00 519.28 47.00 re f Q
+q 0.082 0.369 0.620 rg 38.00 183.00 4.00 47.00 re f Q
+BT /F2 6.80 Tf 0.082 0.369 0.620 rg 1 0 0 1 51.00 215.00 Tm (ARTIFACTS) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 217.30 Tm (Pinned SHA-256 digests, bounded/timed streaming, process-unique partials, verification before atomic replacement.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 126.00 519.28 47.00 re f Q
+q 0.082 0.369 0.620 rg 38.00 126.00 4.00 47.00 re f Q
+BT /F2 6.80 Tf 0.082 0.369 0.620 rg 1 0 0 1 51.00 158.00 Tm (CAPTURE) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 160.30 Tm (LatestBlockQueue is bounded at two blocks and drops oldest data under load; stream closure uses a finally path. A) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 150.90 Tm (gap-to-detector reset is still a High finding.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 69.00 519.28 47.00 re f Q
+q 0.082 0.369 0.620 rg 38.00 69.00 4.00 47.00 re f Q
+BT /F2 6.80 Tf 0.082 0.369 0.620 rg 1 0 0 1 51.00 101.00 Tm (STATE) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 103.30 Tm (YAMNet inference and TeachStore use locks; store loading validates shape/value contracts; mutations roll back and NPZ) Tj ET
+BT /F1 7.70 Tf 0.102 0.137 0.196 rg 1 0 0 1 126.00 93.90 Tm (persistence uses atomic replacement.) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 62.00 Tm (Assessment boundary: robust code contracts are not evidence of acoustic accuracy, alert effectiveness, or safety certification.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 3949 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 489.37 812.00 Tm (CRITICAL FINDINGS) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (3 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (RELEASE BLOCKING) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Critical findings 1-2) Tj ET
+BT /F1 8.00 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 726.00 Tm (Scenario states the concrete failure mode; fix states the minimum engineering direction.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 553.70 519.28 157.30 re f Q
+q 0.706 0.137 0.094 rg 38.00 553.70 5.00 157.30 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 553.70 519.28 157.30 re S Q
+q 0.706 0.137 0.094 rg 53.00 675.00 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 681.10 Tm (CRITICAL 01) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 683.80 Tm (Unauthenticated network control plane) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 662.80 Tm (backend/app/config.py:24; backend/app/main.py:67-68,79-161; backend/app/core.py:105) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 647.10 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 635.90 Tm (The service binds to every interface, permits wildcard CORS, and authenticates neither REST nor WebSocket traffic.) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 624.70 Tm (Any hotspot or LAN peer can inject debug alerts, read event history, upload teaching audio, and persistently mute or) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 613.50 Tm (reprioritize labels.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 599.30 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 588.10 Tm (Default to a constrained interface; require authenticated, authorized roles on data and mutation paths including) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 576.90 Tm (WebSocket; narrow CORS; disable debug in production; add request limits and rate controls.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 375.20 519.28 164.50 re f Q
+q 0.706 0.137 0.094 rg 38.00 375.20 5.00 164.50 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 375.20 519.28 164.50 re S Q
+q 0.706 0.137 0.094 rg 53.00 503.70 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 509.80 Tm (CRITICAL 02) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 512.50 Tm (Low-priority alerts can cancel smoke alarm; stale worker motor) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 497.90 Tm (race) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 484.30 Tm (backend/app/sinks.py:73-99) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 468.60 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 457.40 Tm (Every new event increments one generation counter regardless of urgency, so a low alert supersedes an active high) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 446.20 Tm (smoke/fire alert. A stale worker then exits its loop and unconditionally writes motor=0, which can switch off the newer) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 435.00 Tm (worker after it has started.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 420.80 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 409.60 Tm (Use one serialized hardware controller with explicit priority, hold/latch, and coalescing rules. Only the current owner may) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 398.40 Tm (write or clear outputs; guard every transition and add deterministic preemption/race tests.) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 3994 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 489.37 812.00 Tm (CRITICAL FINDINGS) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (4 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (RELEASE BLOCKING) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Critical findings 3-4) Tj ET
+BT /F1 8.00 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 726.00 Tm (Scenario states the concrete failure mode; fix states the minimum engineering direction.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 553.70 519.28 157.30 re f Q
+q 0.706 0.137 0.094 rg 38.00 553.70 5.00 157.30 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 553.70 519.28 157.30 re S Q
+q 0.706 0.137 0.094 rg 53.00 675.00 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 681.10 Tm (CRITICAL 03) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 683.80 Tm (Configured strobe, pulse, and blink cues are never implemented) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 662.80 Tm (backend/app/config.py:39-44; backend/app/sinks.py:82-99) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 647.10 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 635.90 Tm (Profiles advertise strobe, pulse, and blink, but Alerts only assigns a solid RGB color and runs the motor timing list. The) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 624.70 Tm (named LED pattern is merely printed in mock mode. Demo and accessibility behavior therefore diverge from) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 613.50 Tm (configuration and documentation.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 599.30 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 588.10 Tm (Implement timed LED patterns in the serialized alert scheduler, including cancellation and final-state rules, or remove the) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 576.90 Tm (unsupported profile claims. Verify transitions with a fake clock and GPIO adapter.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 382.40 519.28 157.30 re f Q
+q 0.706 0.137 0.094 rg 38.00 382.40 5.00 157.30 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 382.40 519.28 157.30 re S Q
+q 0.706 0.137 0.094 rg 53.00 503.70 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 509.80 Tm (CRITICAL 04) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 512.50 Tm (False-green ML health and unmanaged thread/microphone lifecycle) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 491.50 Tm (backend/app/ml_bridge.py:23-57; backend/app/main.py:48-60,98-99; ml/earshot_ml/pipeline.py:179,208-209) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 475.80 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 464.60 Tm (ML health reflects import/initial construction, not listener liveness. A startup device fault or later disconnect can kill) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 453.40 Tm (the daemon worker while /healthz remains green. Shutdown closes alerts and HTTP but never signals or joins ML, so) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 442.20 Tm (stream closure is not coordinated with app lifecycle.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 428.00 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 416.80 Tm (Add a stop Event, startup handshake, supervised worker, captured last error/frame time, and alive-state health. On) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 405.60 Tm (shutdown: signal, join with a deadline, then report failure. Define a bounded restart/degraded-mode policy.) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 4117 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 489.37 812.00 Tm (CRITICAL FINDINGS) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (5 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (RELEASE BLOCKING) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Critical findings 5-6) Tj ET
+BT /F1 8.00 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 726.00 Tm (Scenario states the concrete failure mode; fix states the minimum engineering direction.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 542.50 519.28 168.50 re f Q
+q 0.706 0.137 0.094 rg 38.00 542.50 5.00 168.50 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 542.50 519.28 168.50 re S Q
+q 0.706 0.137 0.094 rg 53.00 675.00 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 681.10 Tm (CRITICAL 05) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 683.80 Tm (Unbounded blocking /teach retains raw audio) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 662.80 Tm (backend/app/main.py:131-136; backend/app/ml_bridge.py:59-75; ml/earshot_ml/core.py:393-415) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 647.10 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 635.90 Tm (The async route reads every upload fully into memory, accepts unbounded count/size, performs blocking decode/inference) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 624.70 Tm (on the event loop, and writes raw clips to mkdtemp directories that are never removed. Repetition can exhaust) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 613.50 Tm (RAM/disk, stall APIs, and retain private voice audio.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 599.30 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 588.10 Tm (Require exactly three clips; cap request bytes, clip bytes, decoded duration, and concurrency; stream into) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 576.90 Tm (TemporaryDirectory; clean up in finally; validate WAV early; run teaching in a bounded worker with timeout and) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 565.70 Tm (observable failure.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 371.20 519.28 157.30 re f Q
+q 0.706 0.137 0.094 rg 38.00 371.20 5.00 157.30 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 371.20 519.28 157.30 re S Q
+q 0.706 0.137 0.094 rg 53.00 492.50 82.00 21.00 re f Q
+BT /F2 7.40 Tf 1.000 1.000 1.000 rg 1 0 0 1 59.00 498.60 Tm (CRITICAL 06) Tj ET
+BT /F2 12.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 144.00 501.30 Tm (Delivery reports success even when every sink fails) Tj ET
+BT /F3 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 53.00 480.30 Tm (backend/app/core.py:154-166; backend/app/main.py:98,117-127; backend/app/sinks.py:39-43,73-99,121-131) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 464.60 Tm (SCENARIO) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 453.40 Tm (Dispatcher records the event, gathers with return_exceptions, and discards outcomes. WebSocket and ntfy swallow) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 442.20 Tm (errors; GPIO returns after spawning a thread. /debug/event sets delivered=true whenever the event is not muted, even) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 431.00 Tm (if no client, phone, LED, or motor received it.) Tj ET
+BT /F2 8.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 53.00 416.80 Tm (FIX) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 405.60 Tm (Separate accepted from delivered. Make sink adapters return structured outcomes or raise; apply required-sink policy,) Tj ET
+BT /F1 9.00 Tf 0.102 0.137 0.196 rg 1 0 0 1 53.00 394.40 Tm (deadlines, retries, and telemetry; expose per-sink health and report failure when all configured delivery paths fail.) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 9318 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 505.81 812.00 Tm (HIGH FINDINGS) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (6 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (RELEASE HARDENING) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (High findings) Tj ET
+BT /F1 8.00 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 726.00 Tm (These issues materially affect correctness, availability, or confidence and should close before MVP release.) Tj ET
+q 1.000 0.973 0.929 rg 38.00 578.15 254.14 133.85 re f Q
+q 0.690 0.278 0.027 rg 38.00 578.15 4.00 133.85 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 578.15 254.14 133.85 re S Q
+q 0.690 0.278 0.027 rg 49.00 683.00 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 688.20 Tm (HIGH 01) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 691.60 Tm (Dropped capture gaps do not reset) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 680.50 Tm (detector streaks) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 668.60 Tm (ml/earshot_ml/pipeline.py:173-221; ml/earshot_ml/core.py:67-96) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 654.85 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 645.70 Tm (A queue sequence gap clears the audio buffer, but EventDetector is) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 636.55 Tm (not told. Two qualifying windows separated by dropped audio may still) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 627.40 Tm (satisfy a consecutive-window gate.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 615.25 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 606.10 Tm (Propagate a discontinuity marker and reset streaks before the next) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 596.95 Tm (window; test dropped blocks between positives.) Tj ET
+q 1.000 0.973 0.929 rg 303.14 578.15 254.14 133.85 re f Q
+q 0.690 0.278 0.027 rg 303.14 578.15 4.00 133.85 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 303.14 578.15 254.14 133.85 re S Q
+q 0.690 0.278 0.027 rg 314.14 683.00 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 320.14 688.20 Tm (HIGH 02) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 376.14 691.60 Tm (Optional ML errors can stop backend) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 376.14 680.50 Tm (startup) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 314.14 668.60 Tm (backend/app/main.py:35-51; backend/app/ml_bridge.py:23-51) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 654.85 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 645.70 Tm (start\(\) degrades only on FileNotFoundError. Corrupt model/class) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 636.55 Tm (map/store, interpreter, or other construction failures escape lifespan) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 627.40 Tm (and can prevent the supposedly optional backend from starting.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 615.25 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 606.10 Tm (Catch documented ML domain failures into an explicit degraded state) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 596.95 Tm (and expose the reason; make fail-open versus fail-closed configurable.) Tj ET
+q 1.000 0.973 0.929 rg 38.00 425.15 254.14 143.00 re f Q
+q 0.690 0.278 0.027 rg 38.00 425.15 4.00 143.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 425.15 254.14 143.00 re S Q
+q 0.690 0.278 0.027 rg 49.00 539.15 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 544.35 Tm (HIGH 03) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 547.75 Tm (Rules writes are nontransactional in) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 536.65 Tm (memory) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 524.75 Tm (backend/app/core.py:93-119) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 511.00 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 501.85 Tm (Rules.set mutates _rules before persistence. If mkdir, write, or) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 492.70 Tm (replace fails, the request errors but live memory keeps the unsaved) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 483.55 Tm (rule, diverging from disk and caller expectations.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 471.40 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 462.25 Tm (Use copy-on-write: validate and persist a candidate, then swap live) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 453.10 Tm (state; otherwise roll back under a lock.) Tj ET
+q 1.000 0.973 0.929 rg 303.14 425.15 254.14 143.00 re f Q
+q 0.690 0.278 0.027 rg 303.14 425.15 4.00 143.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 303.14 425.15 254.14 143.00 re S Q
+q 0.690 0.278 0.027 rg 314.14 539.15 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 320.14 544.35 Tm (HIGH 04) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 376.14 547.75 Tm (Fan-out permits thread and task) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 376.14 536.65 Tm (exhaustion) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 314.14 524.75 Tm (backend/app/core.py:154-166; backend/app/sinks.py:73-78) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 511.00 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 501.85 Tm (Each accepted event schedules executor work and Alerts creates a) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 492.70 Tm (daemon thread. With no bounded queue, coalescing, or rate limit,) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 483.55 Tm (debug/API floods can exhaust workers and make alert timing) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 474.40 Tm (nondeterministic.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 462.25 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 453.10 Tm (Use bounded queues and fixed workers, reject or coalesce overflow by) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 443.95 Tm (policy, and rate-limit authenticated producers.) Tj ET
+q 1.000 0.973 0.929 rg 38.00 281.30 254.14 133.85 re f Q
+q 0.690 0.278 0.027 rg 38.00 281.30 4.00 133.85 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 281.30 254.14 133.85 re S Q
+q 0.690 0.278 0.027 rg 49.00 386.15 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 391.35 Tm (HIGH 05) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 394.75 Tm (Exactly-three-clips contract is not) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 383.65 Tm (enforced) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 371.75 Tm (backend/app/main.py:131-136; ml/earshot_ml/core.py:372-395) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 358.00 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 348.85 Tm (The endpoint and MVP text say three clips, while the route and engine) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 339.70 Tm (accept any non-empty iterable. One clip weakens teaching quality; large) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 330.55 Tm (counts amplify the critical resource issue.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 49.00 318.40 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 309.25 Tm (Enforce len\(clips\)==3 at API and engine boundaries, return a clear 422,) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 300.10 Tm (and test 0/1/2/3/4 counts.) Tj ET
+q 1.000 0.973 0.929 rg 303.14 281.30 254.14 133.85 re f Q
+q 0.690 0.278 0.027 rg 303.14 281.30 4.00 133.85 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 303.14 281.30 254.14 133.85 re S Q
+q 0.690 0.278 0.027 rg 314.14 386.15 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 320.14 391.35 Tm (HIGH 06) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 376.14 394.75 Tm (Critical backend behaviors lack tests) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 314.14 374.95 Tm (backend/tests/test_backend.py:1-129) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 361.20 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 352.05 Tm (Eight tests cover core happy paths and one debug flow, but not) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 342.90 Tm (authorization, all-sink failure, priority preemption/races, worker) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 333.75 Tm (death, teach limits/cleanup, rule-save rollback, or shutdown.) Tj ET
+BT /F2 6.35 Tf 0.690 0.278 0.027 rg 1 0 0 1 314.14 321.60 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 312.45 Tm (Add endpoint, fault-injection, lifecycle, and deterministic concurrency) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 314.14 303.30 Tm (tests; retain separate target-hardware acceptance.) Tj ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 16 0 R >>
+endobj
+18 0 obj
+<< /Length 5997 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 412.33 812.00 Tm (MODERATE FINDINGS & ML CONCLUSION) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (7 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (CORRECTNESS & CLARITY) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Moderate findings) Tj ET
+q 0.941 0.969 0.996 rg 38.00 630.80 519.28 103.20 re f Q
+q 0.082 0.369 0.620 rg 38.00 630.80 4.00 103.20 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 630.80 519.28 103.20 re S Q
+q 0.082 0.369 0.620 rg 49.00 705.00 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 710.20 Tm (MODERATE 01) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 713.60 Tm (Non-finite event values pass normalization) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 693.80 Tm (backend/app/core.py:25-49) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 680.05 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 670.90 Tm (float\("nan"\) and infinities survive confidence/timestamp conversion and can poison JSON responses or clients; confidence is not range-checked.) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 658.75 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 649.60 Tm (Require finite values, clamp or reject confidence outside 0..1, and validate timestamp policy before storage.) Tj ET
+q 0.941 0.969 0.996 rg 38.00 509.45 519.28 112.35 re f Q
+q 0.082 0.369 0.620 rg 38.00 509.45 4.00 112.35 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 509.45 519.28 112.35 re S Q
+q 0.082 0.369 0.620 rg 49.00 592.80 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 598.00 Tm (MODERATE 02) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 601.40 Tm (API errors use inconsistent HTTP status semantics) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 581.60 Tm (backend/app/main.py:131-161) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 567.85 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 558.70 Tm (Teach RuntimeError and invalid rule urgency return HTTP 200 with an error object, while framework validation returns 422. Clients cannot rely on) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 549.55 Tm (status for retries or user feedback.) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 537.40 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 528.25 Tm (Use HTTPException and one error envelope: 4xx for bad input/auth, 409 for conflicts, and 503 for unavailable ML/sinks.) Tj ET
+q 0.941 0.969 0.996 rg 38.00 388.10 519.28 112.35 re f Q
+q 0.082 0.369 0.620 rg 38.00 388.10 4.00 112.35 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 388.10 519.28 112.35 re S Q
+q 0.082 0.369 0.620 rg 49.00 471.45 53.00 18.00 re f Q
+BT /F2 6.70 Tf 1.000 1.000 1.000 rg 1 0 0 1 55.00 476.65 Tm (MODERATE 03) Tj ET
+BT /F2 9.40 Tf 0.055 0.102 0.180 rg 1 0 0 1 111.00 480.05 Tm (Backend README carries a stale mode-gate warning) Tj ET
+BT /F3 6.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 49.00 460.25 Tm (backend/README.md:66-71; backend/app/ml_bridge.py:59-75; ml/earshot_ml/core.py:372-415) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 446.50 Tm (SCENARIO) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 437.35 Tm (The README says live teaching is blocked by an ML mode gate, but current ML serializes interpreter access and has no such gate. The warning hides) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 428.20 Tm (the real blocking/temp-file risks.) Tj ET
+BT /F2 6.35 Tf 0.082 0.369 0.620 rg 1 0 0 1 49.00 416.05 Tm (FIX) Tj ET
+BT /F1 7.35 Tf 0.102 0.137 0.196 rg 1 0 0 1 49.00 406.90 Tm (Remove the stale claim and document current synchronous teaching, limits, cleanup, and lifecycle behavior.) Tj ET
+BT /F2 13.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 375.10 Tm (ML review conclusion) Tj ET
+q 0.929 0.984 0.953 rg 38.00 163.10 519.28 191.00 re f Q
+q 0.027 0.408 0.251 rg 38.00 163.10 5.00 191.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 163.10 519.28 191.00 re S Q
+BT /F2 7.20 Tf 0.027 0.408 0.251 rg 1 0 0 1 54.00 330.10 Tm (POSITIVE, WITH ONE INTEGRATION CAVEAT) Tj ET
+BT /F2 10.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 54.00 310.10 Tm (No critical tensor/window/WAV/model/store consistency defect was found in the reviewed ML) Tj ET
+BT /F2 10.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 54.00 297.70 Tm (implementation.) Tj ET
+q 0.027 0.408 0.251 rg 55.00 268.10 5.00 5.00 re f Q
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 68.00 267.30 Tm (Model contract checks reject wrong input/output shape, dtype, non-finite values, and invalid class-map cardinality.) Tj ET
+q 0.027 0.408 0.251 rg 55.00 256.60 5.00 5.00 re f Q
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 68.00 255.80 Tm (WAV handling validates supported PCM, mono conversion, resampling, window geometry, and malformed input boundaries.) Tj ET
+q 0.027 0.408 0.251 rg 55.00 245.10 5.00 5.00 re f Q
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 68.00 244.30 Tm (Artifacts are checksummed and size-bounded before atomic installation; existing known-good destinations are protected.) Tj ET
+q 0.027 0.408 0.251 rg 55.00 233.60 5.00 5.00 re f Q
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 68.00 232.80 Tm (Capture buffering is bounded; inference and taught-state access are locked; store load/save and teach mutations preserve) Tj ET
+BT /F1 7.80 Tf 0.102 0.137 0.196 rg 1 0 0 1 68.00 223.30 Tm (consistency.) Tj ET
+BT /F2 7.50 Tf 0.690 0.278 0.027 rg 1 0 0 1 54.00 176.10 Tm (Caveat: dropped capture gaps clear the audio buffer but do not reset detector streak state \(High 01\).) Tj ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 18 0 R >>
+endobj
+20 0 obj
+<< /Length 5464 >>
+stream
+1 J 1 j
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 812.00 Tm (EARSHOT ML & BACKEND CODE REVIEW) Tj ET
+BT /F2 7.40 Tf 0.344 0.392 0.474 rg 1 0 0 1 488.36 812.00 Tm (RELEASE DECISION) Tj ET
+q 0.055 0.102 0.180 RG 1.10 w 38.00 801.00 m 557.28 801.00 l S Q
+q 0.831 0.851 0.882 RG 0.60 w 38.00 39.00 m 557.28 39.00 l S Q
+BT /F1 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 24.00 Tm (Earshot ML & Backend Code Review  |  main @ 8fac3c9) Tj ET
+BT /F2 7.20 Tf 0.344 0.392 0.474 rg 1 0 0 1 542.76 24.00 Tm (8 / 8) Tj ET
+BT /F2 7.20 Tf 0.082 0.369 0.620 rg 1 0 0 1 38.00 778.00 Tm (EXIT CRITERIA) Tj ET
+BT /F2 17.00 Tf 0.055 0.102 0.180 rg 1 0 0 1 38.00 760.00 Tm (Minimum release-blocking priorities) Tj ET
+BT /F1 8.50 Tf 0.344 0.392 0.474 rg 1 0 0 1 38.00 725.50 Tm (This is the smallest defensible closure set for an unattended, safety-adjacent MVP. It does not confer safety certification.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 645.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 645.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 645.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 665.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 675.00 Tm (01) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 685.00 Tm (Secure the control plane) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 667.90 Tm (Authenticate and authorize REST/WebSocket access; narrow CORS and bind exposure; disable production debug; add) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 657.90 Tm (request/rate limits.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 575.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 575.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 575.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 595.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 605.00 Tm (02) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 615.00 Tm (Make alert output deterministic) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 597.90 Tm (Replace per-event threads with one priority-aware controller; latch high alerts; fix stale writes; implement and test) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 587.90 Tm (strobe/pulse/blink.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 505.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 505.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 505.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 525.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 535.00 Tm (03) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 545.00 Tm (Supervise ML and reset on capture gaps) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 527.90 Tm (Own stop/join/restart, truthful liveness and last-error health, deterministic microphone closure, and detector reset) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 517.90 Tm (after dropped audio.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 435.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 435.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 435.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 455.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 465.00 Tm (04) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 475.00 Tm (Bound and privatize teaching) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 457.90 Tm (Require exactly three validated clips, enforce byte/duration/concurrency limits, offload work, time out, and delete) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 447.90 Tm (raw temporary audio in finally.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 365.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 365.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 365.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 385.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 395.00 Tm (05) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 405.00 Tm (Report delivery truthfully) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 387.90 Tm (Return accepted versus per-sink delivered outcomes, fail when all configured sinks fail, and add deadlines, retries, and) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 377.90 Tm (delivery telemetry.) Tj ET
+q 0.965 0.973 0.984 rg 38.00 295.00 519.28 62.00 re f Q
+q 0.831 0.851 0.882 RG 0.55 w 38.00 295.00 519.28 62.00 re S Q
+q 0.055 0.102 0.180 rg 38.00 295.00 6.00 62.00 re f Q
+q 0.055 0.102 0.180 rg 54.00 315.00 32.00 32.00 re f Q
+BT /F2 10.50 Tf 1.000 1.000 1.000 rg 1 0 0 1 62.00 325.00 Tm (06) Tj ET
+BT /F2 10.20 Tf 0.055 0.102 0.180 rg 1 0 0 1 100.00 335.00 Tm (Prove faults and target hardware) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 317.90 Tm (Add missing auth/failure/concurrency/lifecycle tests, then run model, Pi microphone, GPIO, ntfy, alarm-priority, and) Tj ET
+BT /F1 8.10 Tf 0.102 0.137 0.196 rg 1 0 0 1 100.00 307.90 Tm (measured under-two-second acceptance.) Tj ET
+q 1.000 0.965 0.957 rg 38.00 57.00 519.28 54.00 re f Q
+q 0.706 0.137 0.094 rg 38.00 57.00 6.00 54.00 re f Q
+BT /F2 7.00 Tf 0.706 0.137 0.094 rg 1 0 0 1 55.00 89.00 Tm (RELEASE GATE) Tj ET
+BT /F2 8.20 Tf 0.102 0.137 0.196 rg 1 0 0 1 55.00 74.80 Tm (Release only after all six priorities pass automated fault tests and a documented target-Pi run. Until then: no-go for) Tj ET
+BT /F2 8.20 Tf 0.102 0.137 0.196 rg 1 0 0 1 55.00 64.60 Tm (unattended or safety-adjacent deployment.) Tj ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 20 0 R >>
+endobj
+22 0 obj
+<< /Title (Earshot ML & Backend Code Review) /Subject (Synchronized review - alexanderli07/Earshot - main @ 8fac3c9) /Author (Kiro) /Creator (Local vector PDF generator) /Keywords (Earshot ML backend code review safety reliability) >>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000000015 00000 n 
+0000000125 00000 n 
+0000000230 00000 n 
+0000000327 00000 n 
+0000000429 00000 n 
+0000000524 00000 n 
+0000005648 00000 n 
+0000005800 00000 n 
+0000012446 00000 n 
+0000012598 00000 n 
+0000016599 00000 n 
+0000016753 00000 n 
+0000020799 00000 n 
+0000020953 00000 n 
+0000025122 00000 n 
+0000025276 00000 n 
+0000034646 00000 n 
+0000034800 00000 n 
+0000040849 00000 n 
+0000041003 00000 n 
+0000046519 00000 n 
+0000046673 00000 n 
+trailer
+<< /Size 23 /Root 1 0 R /Info 22 0 R >>
+startxref
+46924
+%%EOF

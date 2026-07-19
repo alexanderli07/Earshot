@@ -1,0 +1,14 @@
+numpy
+sounddevice
+
+[:platform_machine != "armv7l"]
+ai-edge-litert
+
+[:platform_machine == "armv7l"]
+tflite-runtime==2.14.0
+
+[test]
+pytest
+
+[test:python_version < "3.11"]
+tomli

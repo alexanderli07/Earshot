@@ -1,0 +1,2 @@
+[console_scripts]
+earshot = earshot_ml.cli:main

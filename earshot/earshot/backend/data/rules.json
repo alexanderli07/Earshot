@@ -1,0 +1,6 @@
+{
+  "glass_break": {
+    "enabled": true,
+    "urgency": "high"
+  }
+}
