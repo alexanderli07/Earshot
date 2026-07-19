@@ -32,7 +32,7 @@ TEACH_TIMEOUT_S = 30.0
 from . import config
 from .core import Dispatcher, RecentEvents, Rules
 from .ml_bridge import MLBridge
-from .sinks import Alerts, EventHub, push
+from .sinks import Alerts, EventHub, pi_alert, push
 
 
 @contextlib.asynccontextmanager
@@ -46,7 +46,10 @@ async def lifespan(app: FastAPI):
     client = httpx.AsyncClient(timeout=3.0)
 
     async def push_sink(event, profile):
-        await push(client, event, profile)
+        # Phone push and the Pi wearable ride the same sink slot; gather so
+        # a dead Pi can't delay the phone (and vice versa).
+        await asyncio.gather(push(client, event, profile),
+                             pi_alert(client, event))
 
     dispatcher = Dispatcher(recent, rules, hub.broadcast, alerts.alert, push_sink)
     bridge = MLBridge()

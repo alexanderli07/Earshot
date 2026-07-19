@@ -20,6 +20,15 @@ PIN_MOTOR = 18
 NTFY_SERVER = os.environ.get("EARSHOT_NTFY_SERVER", "https://ntfy.sh")
 NTFY_TOPIC = os.environ.get("EARSHOT_NTFY_TOPIC", "")
 
+# --- Wearable alert unit (Raspberry Pi running alert_server.py) ---
+# Export the Pi's address to forward alerts to the physical wearable; the
+# sink is disabled when unset, so dev machines don't try to reach a Pi.
+#   export EARSHOT_PI_URL=http://172.20.10.3:8000
+# Events below PI_ALERT_MIN_URGENCY are not forwarded (the wearable only
+# fires for things worth shaking a person over).
+PI_ALERT_URL = os.environ.get("EARSHOT_PI_URL", "").rstrip("/")
+PI_ALERT_MIN_URGENCY = os.environ.get("EARSHOT_PI_MIN_URGENCY", "medium")
+
 # --- Server ---
 HOST = os.environ.get("EARSHOT_HOST", "0.0.0.0")   # 0.0.0.0 so phones on the
 PORT = int(os.environ.get("EARSHOT_PORT", "8000"))  # hotspot can reach the Pi

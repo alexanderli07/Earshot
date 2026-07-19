@@ -237,3 +237,26 @@ async def push(client, event, profile):
     except Exception as exc:   # no internet, ntfy down — never break dispatch
         print(f"[ntfy] push failed: {exc}", file=sys.stderr)
         return False
+
+
+# ======================================================================
+# Pi wearable — POST /alarm to the alert unit on the hotspot
+# ======================================================================
+
+async def pi_alert(client, event):
+    """Forward the event to the wearable alert unit (a Pi on the hotspot).
+
+    Returns True on send, False on failure, and None when the sink isn't
+    configured or the event ranks below the forwarding threshold."""
+    if client is None or not config.PI_ALERT_URL:
+        return None
+    rank = config.URGENCY_RANK.get(event.get("urgency"), 0)
+    floor = config.URGENCY_RANK.get(config.PI_ALERT_MIN_URGENCY, 2)
+    if rank < floor:
+        return None
+    try:
+        response = await client.post(f"{config.PI_ALERT_URL}/alarm")
+        return response.status_code < 400
+    except Exception as exc:   # Pi off, hotspot down — never break dispatch
+        print(f"[pi] wearable alert failed: {exc}", file=sys.stderr)
+        return False
