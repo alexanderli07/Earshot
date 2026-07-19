@@ -106,7 +106,7 @@
     background: var(--card);
     border: 1px solid var(--line);
     color: var(--ink-soft);
-    border-radius: 999px;
+    border-radius: 6px;
     padding: 6px 12px;
     cursor: pointer;
   }
@@ -117,7 +117,7 @@
     background: var(--card);
     border: 1px solid var(--line);
     color: var(--ink);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 7px 10px;
     font-size: 12px;
     width: 170px;
@@ -158,9 +158,8 @@
   .card {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(16, 21, 28, .05);
     transition: background .2s ease, border-color .2s ease;
   }
 
@@ -177,41 +176,45 @@
 
   .stack > .card + .card { margin-top: 16px; }
 
-  /* ---------- stats ---------- */
+  /* ---------- stats: figures over hairlines, one distribution bar ---------- */
 
-  .stats { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
-
-  .tiles {
-    flex: 1; min-width: 250px;
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  .figures {
+    display: grid; grid-template-columns: repeat(4, 1fr);
   }
 
-  .tile {
-    background: var(--silence);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
+  @media (max-width: 560px) { .figures { grid-template-columns: repeat(2, 1fr); } }
 
-  .tile .tv {
+  .figure { padding: 14px 18px 12px; border-left: 1px solid var(--line); min-width: 0; }
+  .figure:first-child { border-left: 0; }
+  @media (max-width: 560px) { .figure:nth-child(3) { border-left: 0; } }
+
+  .figure .tv {
     display: block;
     font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 800; font-size: 24px; letter-spacing: -0.01em;
-    text-transform: capitalize;
+    font-weight: 800; font-size: 27px; letter-spacing: -0.01em;
+    line-height: 1.25;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  .tile .tk {
+  .figure .tk {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px; letter-spacing: .13em; text-transform: uppercase;
     color: var(--ink-soft);
   }
 
-  .chart { display: flex; align-items: center; gap: 16px; }
+  .dist { padding: 14px 18px 16px; border-top: 1px solid var(--line); }
 
-  .legend { list-style: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
-  .legend li { display: flex; align-items: center; gap: 7px; padding: 2px 0; color: var(--ink-soft); }
-  .legend i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .bar { display: flex; height: 8px; overflow: hidden; }
+  .bar span { display: block; height: 100%; }
+
+  .legend {
+    list-style: none;
+    display: flex; gap: 18px; flex-wrap: wrap;
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  .legend li { display: flex; align-items: center; gap: 7px; color: var(--ink-soft); }
+  .legend i { width: 8px; height: 8px; flex: none; }
 
   /* ---------- detection log ---------- */
 
@@ -235,13 +238,10 @@
     display: flex; align-items: center; gap: 8px; align-self: center;
     font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
     min-width: 96px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: color-mix(in srgb, currentColor 10%, transparent);
   }
 
   .chip::before {
-    content: ""; width: 10px; height: 10px; border-radius: 3px; flex: none;
+    content: ""; width: 12px; height: 12px; flex: none;
     background: currentColor;
   }
 
@@ -278,7 +278,7 @@
     background: var(--card);
     border: 1px solid var(--line);
     color: var(--ink);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 9px 11px;
     font-size: 15px;
     font-family: inherit;
@@ -287,7 +287,7 @@
   .marks { display: flex; gap: 8px; margin: 14px 0; }
 
   .marks i {
-    width: 12px; height: 12px; border-radius: 3px;
+    width: 12px; height: 12px;
     background: var(--silence);
     border: 1px solid var(--line);
   }
@@ -297,7 +297,7 @@
   .btn {
     width: 100%;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 10px 14px;
     font-family: inherit;
     font-weight: 700;
@@ -397,17 +397,15 @@
   <div class="stack">
     <section class="card" aria-label="Statistics">
       <h2>At a glance</h2>
-      <div class="body stats">
-        <div class="tiles">
-          <div class="tile"><span class="tv" id="stAlerts">0</span><span class="tk">alerts today</span></div>
-          <div class="tile"><span class="tv" id="stGap">—</span><span class="tk">avg time between</span></div>
-          <div class="tile"><span class="tv" id="stConf">—</span><span class="tk">avg certainty</span></div>
-          <div class="tile"><span class="tv" id="stTop">—</span><span class="tk">most heard</span></div>
-        </div>
-        <div class="chart">
-          <svg id="donut" viewBox="0 0 140 140" width="132" height="132" role="img" aria-label="Alerts by category"></svg>
-          <ul class="legend" id="legend"></ul>
-        </div>
+      <div class="figures">
+        <div class="figure"><span class="tv" id="stAlerts">0</span><span class="tk">alerts today</span></div>
+        <div class="figure"><span class="tv" id="stGap">—</span><span class="tk">avg time between</span></div>
+        <div class="figure"><span class="tv" id="stConf">—</span><span class="tk">avg certainty</span></div>
+        <div class="figure"><span class="tv" id="stTop">—</span><span class="tk">most heard</span></div>
+      </div>
+      <div class="dist">
+        <div class="bar" id="distbar" aria-hidden="true"></div>
+        <ul class="legend" id="legend" aria-label="Alerts by category"></ul>
       </div>
     </section>
 

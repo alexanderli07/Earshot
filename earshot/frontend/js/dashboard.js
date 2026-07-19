@@ -122,9 +122,8 @@
         appliance: "--appliance",
         taught: "--taught",
     };
-    const SVG_NS = "http://www.w3.org/2000/svg";
     const allEvents = [];
-    const donutSvg = el("donut");
+    const distBar = el("distbar");
     const legendList = el("legend");
     function formatGap(seconds) {
         if (!isFinite(seconds))
@@ -168,68 +167,39 @@
             }
         }
         el("stTop").textContent = top;
-        renderDonut();
+        renderDist();
     }
-    function donutCircle(radius, stroke) {
-        const circle = document.createElementNS(SVG_NS, "circle");
-        circle.setAttribute("cx", "70");
-        circle.setAttribute("cy", "70");
-        circle.setAttribute("r", String(radius));
-        circle.setAttribute("fill", "none");
-        circle.setAttribute("stroke", stroke);
-        circle.setAttribute("stroke-width", "16");
-        return circle;
-    }
-    function renderDonut() {
+    function renderDist() {
         const byCategory = { urgent: 0, presence: 0, appliance: 0, taught: 0 };
         for (const e of allEvents)
             byCategory[categoryOf(e)] += 1;
         const total = allEvents.length;
-        const radius = 52;
-        const circumference = 2 * Math.PI * radius;
-        donutSvg.innerHTML = "";
+        distBar.innerHTML = "";
         legendList.innerHTML = "";
-        donutSvg.appendChild(donutCircle(radius, "var(--line)"));
-        let offset = 0;
+        if (!total) {
+            const filler = document.createElement("span");
+            filler.style.width = "100%";
+            filler.style.background = "var(--line)";
+            distBar.appendChild(filler);
+            const item = document.createElement("li");
+            item.textContent = "no alerts yet";
+            legendList.appendChild(item);
+            return;
+        }
         for (const category of STAT_CATEGORIES) {
             const n = byCategory[category];
             if (!n)
                 continue;
-            const fraction = n / total;
-            const segment = donutCircle(radius, `var(${CATEGORY_CSS_VAR[category]})`);
-            segment.setAttribute("stroke-dasharray", `${fraction * circumference} ${circumference}`);
-            segment.setAttribute("stroke-dashoffset", String(-offset * circumference));
-            segment.setAttribute("transform", "rotate(-90 70 70)");
-            donutSvg.appendChild(segment);
-            offset += fraction;
+            const segment = document.createElement("span");
+            segment.style.width = `${(n / total) * 100}%`;
+            segment.style.background = `var(${CATEGORY_CSS_VAR[category]})`;
+            distBar.appendChild(segment);
             const item = document.createElement("li");
             const swatch = document.createElement("i");
             swatch.style.background = `var(${CATEGORY_CSS_VAR[category]})`;
             const text = document.createElement("span");
             text.textContent = `${category} · ${n}`;
             item.append(swatch, text);
-            legendList.appendChild(item);
-        }
-        const center = document.createElementNS(SVG_NS, "text");
-        center.setAttribute("x", "70");
-        center.setAttribute("y", "67");
-        center.setAttribute("text-anchor", "middle");
-        center.setAttribute("fill", "var(--ink)");
-        center.setAttribute("style", "font: 800 26px 'Bricolage Grotesque', sans-serif;");
-        center.textContent = String(total);
-        const centerSub = document.createElementNS(SVG_NS, "text");
-        centerSub.setAttribute("x", "70");
-        centerSub.setAttribute("y", "86");
-        centerSub.setAttribute("text-anchor", "middle");
-        centerSub.setAttribute("fill", "var(--ink-soft)");
-        centerSub.setAttribute("style", "font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: .12em; text-transform: uppercase;");
-        centerSub.textContent = total === 1 ? "alert" : "alerts";
-        donutSvg.append(center, centerSub);
-        if (!total) {
-            const item = document.createElement("li");
-            const text = document.createElement("span");
-            text.textContent = "no alerts yet";
-            item.append(text);
             legendList.appendChild(item);
         }
     }
