@@ -74,10 +74,15 @@ EVENT_MAP = [
      "threshold": 0.35, "urgency": "medium"},
     {"label": "knock", "classes": ["Knock"],
      "threshold": 0.40, "urgency": "medium"},
-    {"label": "baby_cry", "classes": ["Baby cry, infant cry"],
-     "threshold": 0.35, "urgency": "high"},
+    # Transient sounds: a shatter is over in one window, and cry wails have
+    # gaps between them, so requiring CONSECUTIVE_WINDOWS qualifying windows
+    # in a row means these can never fire. One window is enough; the 10 s
+    # debounce still suppresses repeats.
+    {"label": "baby_cry", "classes": ["Baby cry, infant cry",
+                                      "Crying, sobbing"],
+     "threshold": 0.35, "urgency": "high", "consecutive": 1},
     {"label": "glass_break", "classes": ["Shatter"],
-     "threshold": 0.40, "urgency": "high"},
+     "threshold": 0.40, "urgency": "high", "consecutive": 1},
 ]
 
 # Teach mode must never shadow a built-in event identity. Keep the normalized

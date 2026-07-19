@@ -370,7 +370,8 @@ class EarshotML:
                 above=bool(confidence >= spec["threshold"]),
                 urgency=spec["urgency"],
                 source="pretrained",
-                consecutive=config.CONSECUTIVE_WINDOWS,
+                consecutive=spec.get("consecutive",
+                                     config.CONSECUTIVE_WINDOWS),
             ))
         if self.alarm_head is not None:
             alarm_score = self.alarm_head.score(embedding)
