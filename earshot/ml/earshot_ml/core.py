@@ -216,6 +216,22 @@ class TeachStore:
             self._names.append(name)
             self._vectors = vectors
 
+    def replace(self, entries):
+        """Swap the in-memory matcher to exactly these (name, embedding) pairs.
+
+        Does not touch the on-disk store — used to load one user's taught
+        sounds into the live matcher (e.g. on login).
+        """
+        names, vectors = [], []
+        for name, embedding in entries:
+            names.append(str(name))
+            vectors.append(_normalize(embedding))
+        stacked = (np.vstack(vectors) if vectors
+                   else np.zeros((0, 1024), np.float32))
+        with self._lock:
+            self._names = names
+            self._vectors = stacked
+
     @contextmanager
     def transaction(self):
         """Rollback an in-memory update if any operation in it fails."""
@@ -422,9 +438,7 @@ class EarshotML:
 
     # ---- teach mode (called by the backend teach endpoint) ----
 
-    def teach(self, name, clips):
-        """Store one embedding per clip. clips: wav paths and/or float32
-        arrays (16 kHz mono). Returns the number of clips stored."""
+    def _validate_teach_name(self, name):
         if not isinstance(name, str):
             raise ValueError("teach name must be a non-empty string")
         name = name.strip()
@@ -433,14 +447,15 @@ class EarshotML:
         if name.casefold() in config.RESERVED_EVENT_LABELS:
             raise ValueError(
                 f"teach name {name!r} conflicts with a reserved event label")
+        return name
 
+    def _load_teach_clips(self, clips):
         try:
             clip_list = list(clips)
         except TypeError as exc:
             raise ValueError("clips must be a non-empty iterable") from exc
         if not clip_list:
             raise ValueError("clips must be a non-empty iterable")
-
         audio_clips = []
         for clip in clip_list:
             loaded = (load_wav_16k_mono(clip)
@@ -457,17 +472,50 @@ class EarshotML:
             if not np.isfinite(audio).all():
                 raise ValueError("clip audio values must all be finite")
             audio_clips.append(audio)
+        return audio_clips
 
-        clip_embeddings = []
-        for audio in audio_clips:
-            embeddings = [self.yamnet.infer(w)[1] for w in clip_windows(audio)]
-            clip_embeddings.append(_normalize(np.mean(embeddings, axis=0)))
+    def _embed_clip(self, audio):
+        embeddings = [self.yamnet.infer(w)[1] for w in clip_windows(audio)]
+        return _normalize(np.mean(embeddings, axis=0))
 
+    def teach(self, name, clips):
+        """Store one embedding per clip. clips: wav paths and/or float32
+        arrays (16 kHz mono). Returns the number of clips stored."""
+        name = self._validate_teach_name(name)
+        clip_embeddings = [self._embed_clip(a)
+                           for a in self._load_teach_clips(clips)]
         with self.store.transaction():
             for clip_embedding in clip_embeddings:
                 self.store.add(name, clip_embedding)
             self.store.save()
-        return len(audio_clips)
+        return len(clip_embeddings)
+
+    # ---- per-user teaching (embeddings persisted externally, e.g. MongoDB) ----
+
+    def embed_clips(self, name, clips):
+        """Validate and return one normalized 1024-value embedding per clip as
+        a plain list, WITHOUT persisting anything locally.
+
+        The caller (backend) stores these per user (in MongoDB) and calls
+        load_user_sounds()/add_user_sound() to make them live for matching, so
+        a user's taught sounds roam across devices.
+        """
+        name = self._validate_teach_name(name)
+        audio = self._load_teach_clips(clips)
+        return name, [self._embed_clip(a).tolist() for a in audio]
+
+    def add_user_sound(self, name, embedding):
+        """Add one taught sound to the live matcher (no local persistence)."""
+        self.store.add(self._validate_teach_name(name), embedding)
+
+    def load_user_sounds(self, entries):
+        """Replace the live matcher with a user's taught sounds.
+
+        entries: iterable of (name, embedding). Called on login so the device
+        starts recognizing the logged-in user's sounds; the on-disk store is
+        untouched because MongoDB is the source of truth for taught sounds.
+        """
+        self.store.replace(entries)
 
     def learned_sounds(self):
         return self.store.learned()

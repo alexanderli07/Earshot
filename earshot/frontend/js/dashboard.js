@@ -25,7 +25,8 @@
         themeButton.textContent = theme === "dark" ? "light mode" : "dark mode";
     }
     themeButton.addEventListener("click", () => {
-        applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+        applyTheme(document.documentElement.dataset.theme === "dark"
+            ? "light" : "dark");
     });
     applyTheme(document.documentElement.dataset.theme || "light");
     /* ---- auth state ---- */
@@ -103,7 +104,8 @@
         label.textContent = prettyLabel(ev.label);
         const confidence = document.createElement("span");
         confidence.className = "conf";
-        confidence.textContent = `${Math.round((ev.confidence ?? 1) * 100)}% certainty`;
+        confidence.textContent =
+            `${Math.round((ev.confidence ?? 1) * 100)}% certainty`;
         const chip = document.createElement("span");
         chip.className = `chip ${category}`;
         chip.textContent = category;
@@ -274,14 +276,18 @@
             form.append("name", nameInput.value.trim());
             clips.forEach((blob, i) => form.append("clips", blob, `clip${i}.wav`));
             try {
-                const response = await fetch(`${httpBase(hostInput.value)}/teach`, {
+                // Signed in: the sound is saved to the user in Atlas and roams to any
+                // device they log into. Signed out: it's device-local (global /teach).
+                const response = await fetch(`${apiBase()}${loggedIn ? "/me/teach" : "/teach"}`, {
                     method: "POST",
+                    credentials: "same-origin",
                     body: form,
                 });
                 const result = await response.json();
                 if (response.ok && result.ok) {
                     const names = (result.learned ?? []).map((s) => s.name).join(", ");
-                    setNote(`Learned "${nameInput.value.trim()}". Known: ${names}`, "ok");
+                    const scope = loggedIn ? " (saved to your account)" : "";
+                    setNote(`Learned "${nameInput.value.trim()}"${scope}. Known: ${names}`, "ok");
                     resetTeach();
                     void loadRules();
                 }
@@ -349,7 +355,8 @@
         }
         catch { /* backend not reachable yet */ }
         try {
-            learned = await (await fetch(`${base}/sounds`)).json();
+            // Signed in: the user's own taught sounds (from Atlas); else device-global.
+            learned = await (await fetch(`${base}${loggedIn ? "/me/sounds" : "/sounds"}`, { credentials: "same-origin" })).json();
         }
         catch { /* ML may be absent; base sounds still render */ }
         const labels = [...new Set([

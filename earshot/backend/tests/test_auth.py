@@ -181,3 +181,104 @@ def test_bad_mongo_uri_degrades_to_auth_off(monkeypatch):
         assert c.post("/debug/event",
                       json={"label": "knock", "urgency": "medium"}
                       ).json()["accepted"] is True           # alerts still fire
+
+
+# ---- per-user taught sounds roam across devices (Atlas-backed) ----
+
+class FakeBridge:
+    """Stand-in for MLBridge: embed_clips returns deterministic vectors so the
+    per-user storage + roam behavior is testable without the model."""
+    available = True
+
+    def __init__(self):
+        self.added = []
+        self.loaded = None
+
+    def embed_clips(self, name, blobs):
+        base = sum(ord(c) for c in name) % 900
+        embeddings = []
+        for i in range(len(blobs)):
+            vec = [0.0] * 1024
+            vec[base + i] = 1.0
+            embeddings.append(vec)
+        return name.strip(), embeddings
+
+    def add_user_sound(self, name, embedding):
+        self.added.append((name, embedding))
+
+    def load_user_sounds(self, entries):
+        self.loaded = list(entries)
+
+    def learned_sounds(self):
+        return []
+
+
+def _three_clips():
+    return [("clips", (f"c{i}.wav", b"RIFFdummy", "audio/wav")) for i in range(3)]
+
+
+def test_me_teach_requires_login(client):
+    resp = client.post("/me/teach", data={"name": "kettle"},
+                       files=_three_clips())
+    assert resp.status_code == 401
+
+
+def test_me_teach_503_without_ml(client):
+    client.post("/auth/register",
+                json={"username": "kai", "password": "hunter2pass"})
+    # default bridge in the test env is unavailable
+    resp = client.post("/me/teach", data={"name": "kettle"},
+                       files=_three_clips())
+    assert resp.status_code == 503
+
+
+def test_taught_sound_saved_to_user_and_listed(client):
+    client.app.state.bridge = FakeBridge()
+    client.post("/auth/register",
+                json={"username": "kai", "password": "hunter2pass"})
+    resp = client.post("/me/teach", data={"name": "kettle"},
+                       files=_three_clips())
+    assert resp.status_code == 200 and resp.json()["ok"] is True
+    assert client.get("/me/sounds").json() == [{"name": "kettle", "clips": 3}]
+
+
+def test_taught_sounds_are_isolated_per_user(client):
+    client.app.state.bridge = FakeBridge()
+    client.post("/auth/register",
+                json={"username": "alice", "password": "password123"})
+    client.post("/me/teach", data={"name": "kettle"}, files=_three_clips())
+    client.post("/auth/logout")
+
+    client.post("/auth/register",
+                json={"username": "bob", "password": "password123"})
+    assert client.get("/me/sounds").json() == []      # bob sees nothing of alice's
+
+
+def test_taught_sounds_roam_to_a_new_device_on_login(client):
+    """The core promise: log in elsewhere and your sounds come with you."""
+    client.post("/auth/register",
+                json={"username": "kai", "password": "hunter2pass"})
+    teach_bridge = FakeBridge()
+    client.app.state.bridge = teach_bridge
+    client.post("/me/teach", data={"name": "kettle"}, files=_three_clips())
+    client.post("/auth/logout")
+
+    # A different device: a fresh matcher (fresh bridge) with nothing loaded.
+    new_device = FakeBridge()
+    client.app.state.bridge = new_device
+    assert new_device.loaded is None
+    client.post("/auth/login",
+                json={"username": "kai", "password": "hunter2pass"})
+    # On login the backend pulled the user's sounds from Atlas into the matcher.
+    assert new_device.loaded is not None
+    assert [name for name, _ in new_device.loaded] == ["kettle", "kettle",
+                                                       "kettle"]
+
+
+def test_delete_taught_sound(client):
+    client.app.state.bridge = FakeBridge()
+    client.post("/auth/register",
+                json={"username": "kai", "password": "hunter2pass"})
+    client.post("/me/teach", data={"name": "kettle"}, files=_three_clips())
+    assert client.delete("/me/sounds/kettle").json()["removed"] == 3
+    assert client.get("/me/sounds").json() == []

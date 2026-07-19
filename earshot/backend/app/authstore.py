@@ -7,6 +7,7 @@ same code against an in-memory mongomock database (no mongod needed). Collection
   sessions    { _id, user_id, token_hash, login_at, logout_at, user_agent }
   user_rules  { _id, user_id, label, enabled, urgency }   (per-user overrides)
   user_prefs  { _id: user_id, ntfy_topic, shown_categories, ... }
+  taught_sounds { _id, user_id, name, embedding[1024], created_at }  (roams)
 
 Passwords are never stored here — only bcrypt hashes, produced in auth.py.
 Session tokens are never stored either — only their SHA-256 hashes, so a DB
@@ -24,12 +25,14 @@ class UserStore:
         self.sessions = db["sessions"]
         self.user_rules = db["user_rules"]
         self.user_prefs = db["user_prefs"]
+        self.taught_sounds = db["taught_sounds"]
 
     async def ensure_indexes(self):
         await self.users.create_index("username", unique=True)
         await self.sessions.create_index("token_hash", unique=True)
         await self.user_rules.create_index([("user_id", 1), ("label", 1)],
                                            unique=True)
+        await self.taught_sounds.create_index([("user_id", 1), ("name", 1)])
 
     # ---- users ----
 
@@ -100,6 +103,40 @@ class UserStore:
             {"$set": {"enabled": bool(enabled), "urgency": urgency}},
             upsert=True)
         return {"enabled": bool(enabled), "urgency": urgency}
+
+    # ---- per-user taught sounds (roam across devices) ----
+
+    async def add_taught_sound(self, user_id, name, embeddings):
+        """Store a taught sound (one document per recorded clip embedding) so
+        it can be reloaded on any device the user logs into."""
+        docs = [{
+            "_id": uuid4().hex,
+            "user_id": user_id,
+            "name": name,
+            "embedding": [float(x) for x in embedding],
+            "created_at": time.time(),
+        } for embedding in embeddings]
+        if docs:
+            await self.taught_sounds.insert_many(docs)
+        return len(docs)
+
+    async def get_taught_sounds(self, user_id):
+        """[(name, embedding), ...] for loading into the live matcher."""
+        cursor = self.taught_sounds.find({"user_id": user_id})
+        docs = await cursor.to_list(length=10000)
+        return [(d["name"], d["embedding"]) for d in docs]
+
+    async def list_taught_names(self, user_id):
+        """[{"name", "clips"}], one entry per taught sound (deduped by name)."""
+        counts = {}
+        for name, _ in await self.get_taught_sounds(user_id):
+            counts[name] = counts.get(name, 0) + 1
+        return [{"name": n, "clips": c} for n, c in counts.items()]
+
+    async def delete_taught_sound(self, user_id, name):
+        result = await self.taught_sounds.delete_many(
+            {"user_id": user_id, "name": name})
+        return result.deleted_count
 
     # ---- per-user preferences ----
 

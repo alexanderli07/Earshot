@@ -128,6 +128,35 @@ class MLBridge:
             self.engine.teach(name, paths)
         return self.engine.learned_sounds()
 
+    def embed_clips(self, name, blobs):
+        """blobs: list of (filename, bytes). Returns (name, [embedding,...])
+        WITHOUT persisting locally — the caller stores them per user (MongoDB).
+
+        Temp audio is private voice data: it lives in a TemporaryDirectory and
+        is deleted in finally, success or not.
+        """
+        if not self.available or self.engine is None:
+            raise RuntimeError("ML not available")
+        if len(blobs) != REQUIRED_CLIPS:
+            raise ValueError(f"teach requires exactly {REQUIRED_CLIPS} clips")
+        with tempfile.TemporaryDirectory(prefix="earshot_teach_") as tmpdir:
+            paths = []
+            for i, (fname, data) in enumerate(blobs):
+                suffix = Path(fname or f"clip{i}.wav").suffix or ".wav"
+                p = Path(tmpdir) / f"clip{i}{suffix}"
+                p.write_bytes(data)
+                paths.append(str(p))
+            return self.engine.embed_clips(name, paths)
+
+    def add_user_sound(self, name, embedding):
+        if self.available and self.engine is not None:
+            self.engine.add_user_sound(name, embedding)
+
+    def load_user_sounds(self, entries):
+        """Make a user's taught sounds live on this device (e.g. on login)."""
+        if self.available and self.engine is not None:
+            self.engine.load_user_sounds(entries)
+
     def learned_sounds(self):
         if not self.available or self.engine is None:
             return []

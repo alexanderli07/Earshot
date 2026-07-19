@@ -281,6 +281,21 @@ def _set_session_cookie(response: Response, token: str) -> None:
         max_age=config.SESSION_TTL_DAYS * 24 * 3600, path="/")
 
 
+async def _load_user_sounds(request: Request, store, user_id: str) -> None:
+    """Pull the user's taught sounds from Atlas into the live matcher, so a
+    device recognizes them immediately after login — the roam-across-devices
+    behavior. Best-effort: never fail a login over it."""
+    bridge = request.app.state.bridge
+    if not getattr(bridge, "available", False):
+        return
+    try:
+        entries = await store.get_taught_sounds(user_id)
+        await asyncio.to_thread(bridge.load_user_sounds, entries)
+    except Exception as exc:
+        import sys
+        print(f"[auth] could not load taught sounds: {exc}", file=sys.stderr)
+
+
 class Credentials(BaseModel):
     username: str
     password: str
@@ -304,6 +319,7 @@ async def register(body: Credentials, request: Request, response: Response):
     await store.create_session(user["_id"], auth.hash_token(token),
                                user_agent="register")
     _set_session_cookie(response, token)
+    await _load_user_sounds(request, store, user["_id"])
     return auth.public_user(user)
 
 
@@ -321,6 +337,8 @@ async def login(body: Credentials, request: Request, response: Response):
         user["_id"], auth.hash_token(token),
         user_agent=request.headers.get("user-agent"))
     _set_session_cookie(response, token)
+    # Roam: this device now recognizes the user's taught sounds.
+    await _load_user_sounds(request, store, user["_id"])
     return auth.public_user(user)
 
 
@@ -383,6 +401,68 @@ async def put_my_prefs(body: Prefs, request: Request,
     store = auth.get_store(request)
     return await store.set_prefs(user["_id"],
                                  body.model_dump(exclude_none=True))
+
+
+# ---- per-user taught sounds (stored in Atlas, roam across devices) ----
+
+@app.post("/me/teach")
+async def teach_my_sound(request: Request,
+                         name: str = Form(...),
+                         clips: list[UploadFile] = File(...),
+                         user: dict = Depends(auth.current_user)):
+    """Teach a sound bound to the logged-in user: embed via ML, persist the
+    embeddings in Atlas, and make it live on this device now. Because the
+    embeddings live in Atlas, the sound is recognized on any device the user
+    logs into."""
+    store = auth.get_store(request)
+    bridge = request.app.state.bridge
+    if not getattr(bridge, "available", False):
+        raise HTTPException(status_code=503,
+                            detail="ML not available for teaching")
+    if len(clips) != REQUIRED_CLIPS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"teach requires exactly {REQUIRED_CLIPS} clips; "
+                   f"got {len(clips)}")
+    blobs = []
+    for clip in clips:
+        data = await clip.read()
+        if len(data) > MAX_CLIP_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"clip {clip.filename!r} exceeds "
+                       f"{MAX_CLIP_BYTES // (1024 * 1024)} MB")
+        blobs.append((clip.filename, data))
+    try:
+        resolved_name, embeddings = await asyncio.wait_for(
+            asyncio.to_thread(bridge.embed_clips, name, blobs),
+            timeout=TEACH_TIMEOUT_S)
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="teach timed out")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    await store.add_taught_sound(user["_id"], resolved_name, embeddings)
+    for embedding in embeddings:
+        bridge.add_user_sound(resolved_name, embedding)
+    return {"ok": True, "learned": await store.list_taught_names(user["_id"])}
+
+
+@app.get("/me/sounds")
+async def get_my_sounds(request: Request,
+                        user: dict = Depends(auth.current_user)):
+    store = auth.get_store(request)
+    return await store.list_taught_names(user["_id"])
+
+
+@app.delete("/me/sounds/{name}")
+async def delete_my_sound(name: str, request: Request,
+                          user: dict = Depends(auth.current_user)):
+    store = auth.get_store(request)
+    removed = await store.delete_taught_sound(user["_id"], name)
+    await _load_user_sounds(request, store, user["_id"])   # drop it live too
+    return {"removed": removed}
 
 
 def main():

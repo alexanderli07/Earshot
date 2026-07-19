@@ -168,6 +168,15 @@ Endpoints (all 503 when auth is off):
 | GET  | `/auth/sessions` | this user's login/logout history |
 | GET/PUT | `/me/rules`, `/me/rules/{label}` | per-user rule overrides |
 | GET/PUT | `/me/prefs` | per-user preferences (own ntfy topic, shown categories) |
+| POST | `/me/teach` | teach a sound bound to the user (embeddings stored in Mongo) |
+| GET | `/me/sounds` | the user's taught sounds |
+| DELETE | `/me/sounds/{name}` | forget one |
+
+**Taught sounds roam across devices.** When you teach a sound while signed in,
+its YAMNet embeddings are stored in Mongo under your account (not the local
+`taught_sounds.npz`). On login, the backend loads *your* taught sounds into the
+live matcher — so logging in on a second Earshot brings your learned sounds
+with you. Signed out, teaching stays device-local via the global `/teach`.
 
 Security posture:
 
