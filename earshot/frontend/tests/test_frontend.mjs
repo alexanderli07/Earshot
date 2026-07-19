@@ -63,7 +63,11 @@ const tmp = mkdtempSync(join(tmpdir(), "earshot-fe-"));
 const wavPath = join(tmp, "tone.wav");
 writeFileSync(wavPath, wavBytes);
 try {
-  const py = join(repo, "ml", ".venv", "bin", "python");
+  const py = process.env.EARSHOT_TEST_PYTHON ?? (
+    process.platform === "win32"
+      ? join(repo, "ml", ".venv", "Scripts", "python.exe")
+      : join(repo, "ml", ".venv", "bin", "python")
+  );
   const out = execFileSync(py, ["-c", `
 import sys; sys.path.insert(0, ${JSON.stringify(join(repo, "ml"))}
 )
