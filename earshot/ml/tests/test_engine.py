@@ -815,3 +815,45 @@ def test_run_capture_gap_preserves_event_debounce(monkeypatch):
     engine.run()
 
     assert [event["label"] for event in emitted] == ["smoke_alarm"]
+
+
+# ---- per-user teaching hooks (embed-only + load/replace matcher) ----
+
+def test_embed_clips_returns_one_normalized_embedding_per_clip():
+    engine = make_engine(FakeYamNet([
+        (np.zeros(1, dtype=np.float32), embedding(3)),
+        (np.zeros(1, dtype=np.float32), embedding(7)),
+    ], class_names=["Smoke detector, smoke alarm"]))
+    name, embeddings = engine.embed_clips(
+        "kettle",
+        [np.zeros(config.WINDOW_SAMPLES, dtype=np.float32),
+         np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)])
+    assert name == "kettle"
+    assert len(embeddings) == 2
+    assert all(isinstance(e, list) and len(e) == 1024 for e in embeddings)
+    assert embeddings[0][3] == pytest.approx(1.0)   # normalized unit vector
+    assert embeddings[1][7] == pytest.approx(1.0)
+
+
+def test_embed_clips_does_not_persist_to_the_matcher():
+    engine = make_engine(FakeYamNet(class_names=["x"]))
+    engine.embed_clips("kettle", [np.zeros(config.WINDOW_SAMPLES,
+                                           dtype=np.float32)])
+    assert engine.learned_sounds() == []            # compute only, no store
+
+
+def test_load_user_sounds_replaces_matcher_and_matches():
+    engine = make_engine(FakeYamNet(class_names=["x"]))
+    engine.add_user_sound("stale", embedding(1))
+    engine.load_user_sounds([("kettle", embedding(5).tolist()),
+                             ("dryer", embedding(9).tolist())])
+    assert {s["name"] for s in engine.learned_sounds()} == {"kettle", "dryer"}
+    assert engine.store.match(embedding(5))[0] == "kettle"   # roamed sound live
+    assert engine.store.match(embedding(1)) is None          # stale one dropped
+
+
+def test_load_user_sounds_empty_clears_matcher():
+    engine = make_engine(FakeYamNet(class_names=["x"]))
+    engine.add_user_sound("kettle", embedding(5))
+    engine.load_user_sounds([])
+    assert engine.learned_sounds() == []

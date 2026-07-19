@@ -36,10 +36,14 @@ RECENT_EVENTS_MAX = 100
 
 # --- User accounts (MongoDB) ---
 # Per-user login + per-user rules/preferences live in MongoDB. Auth is DISABLED
-# until a connection string is set, so the demo runs with zero Mongo:
+# until a connection string is set, so the demo runs with zero Mongo. Works
+# with a local mongod or MongoDB Atlas:
 #   export EARSHOT_MONGO_URI=mongodb://localhost:27017
+#   export EARSHOT_MONGO_URI='mongodb+srv://USER:PASS@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority'
 MONGO_URI = os.environ.get("EARSHOT_MONGO_URI", "")
 MONGO_DB = os.environ.get("EARSHOT_MONGO_DB", "earshot")
+# Server-selection timeout; keep short so a bad URI degrades to auth-off fast.
+MONGO_TIMEOUT_MS = int(os.environ.get("EARSHOT_MONGO_TIMEOUT_MS", "5000"))
 SESSION_COOKIE = "earshot_session"
 SESSION_TTL_DAYS = int(os.environ.get("EARSHOT_SESSION_TTL_DAYS", "7"))
 # Cookies are marked Secure only when served over HTTPS. The hotspot demo is

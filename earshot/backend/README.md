@@ -117,15 +117,45 @@ Login + per-user rules and preferences live in MongoDB. **Auth is disabled
 until `EARSHOT_MONGO_URI` is set**, so the demo runs with zero Mongo and
 nothing here changes unless you opt in.
 
-No MongoDB installed? `./setup-mongo.sh` downloads the community server to
-`~/.local/mongodb` and starts it on `localhost:27017` — no Homebrew, Docker,
-or admin rights needed. Then:
+Any MongoDB works — a local server or **MongoDB Atlas** (cloud). Same driver,
+just a different connection string.
+
+**Option A — local (fully offline):** `./setup-mongo.sh` downloads the
+community server to `~/.local/mongodb` and starts it on `localhost:27017` — no
+Homebrew, Docker, or admin rights needed. Then:
 
 ```bash
 export EARSHOT_MONGO_URI=mongodb://localhost:27017   # enable accounts
 export EARSHOT_MONGO_DB=earshot                       # optional (default)
 export EARSHOT_COOKIE_SECURE=1                         # only behind HTTPS
 ```
+
+**Option B — MongoDB Atlas (cloud, shared across devices):**
+
+1. Create a free cluster at <https://cloud.mongodb.com>.
+2. **Database Access** → add a database user (username + password).
+3. **Network Access** → allow your IP (or `0.0.0.0/0` for a hackathon demo —
+   understand that opens it to the internet; the DB user password is the only
+   guard).
+4. **Connect → Drivers → Python** → copy the `mongodb+srv://…` string and set it
+   (URL-encode any special characters in the password):
+
+```bash
+export EARSHOT_MONGO_URI='mongodb+srv://USER:PASS@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority'
+export EARSHOT_MONGO_DB=earshot
+```
+
+The `dnspython` and `certifi` dependencies (in `requirements.txt`) handle the
+`+srv` lookup and Atlas TLS. On startup the backend pings the cluster; if it
+can't connect (wrong password, IP not allow-listed) it logs the reason and
+**degrades to auth-off rather than crashing** — the alert path keeps working.
+
+> **Atlas is a cloud database.** Account data (usernames, bcrypt hashes,
+> per-user rules, login history) leaves the room. Detection audio never does,
+> and accounts aren't on the alert path, but this trades Earshot's offline
+> story for cross-device convenience. Use local Mongo (Option A) to stay fully
+> offline. Never commit the connection string — it contains a password; keep it
+> in the environment only.
 
 Endpoints (all 503 when auth is off):
 
@@ -138,6 +168,15 @@ Endpoints (all 503 when auth is off):
 | GET  | `/auth/sessions` | this user's login/logout history |
 | GET/PUT | `/me/rules`, `/me/rules/{label}` | per-user rule overrides |
 | GET/PUT | `/me/prefs` | per-user preferences (own ntfy topic, shown categories) |
+| POST | `/me/teach` | teach a sound bound to the user (embeddings stored in Mongo) |
+| GET | `/me/sounds` | the user's taught sounds |
+| DELETE | `/me/sounds/{name}` | forget one |
+
+**Taught sounds roam across devices.** When you teach a sound while signed in,
+its YAMNet embeddings are stored in Mongo under your account (not the local
+`taught_sounds.npz`). On login, the backend loads *your* taught sounds into the
+live matcher — so logging in on a second Earshot brings your learned sounds
+with you. Signed out, teaching stays device-local via the global `/teach`.
 
 Security posture:
 

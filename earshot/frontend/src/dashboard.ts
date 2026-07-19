@@ -312,15 +312,20 @@ teachButton.addEventListener("click", () => {
     form.append("name", nameInput.value.trim());
     clips.forEach((blob, i) => form.append("clips", blob, `clip${i}.wav`));
     try {
-      const response = await fetch(`${httpBase(hostInput.value)}/teach`, {
+      // Signed in: the sound is saved to the user in Atlas and roams to any
+      // device they log into. Signed out: it's device-local (global /teach).
+      const response = await fetch(
+        `${apiBase()}${loggedIn ? "/me/teach" : "/teach"}`, {
         method: "POST",
+        credentials: "same-origin",
         body: form,
       });
       const result = await response.json() as
         { ok?: boolean; learned?: { name: string }[]; detail?: string };
       if (response.ok && result.ok) {
         const names = (result.learned ?? []).map((s) => s.name).join(", ");
-        setNote(`Learned "${nameInput.value.trim()}". Known: ${names}`, "ok");
+        const scope = loggedIn ? " (saved to your account)" : "";
+        setNote(`Learned "${nameInput.value.trim()}"${scope}. Known: ${names}`, "ok");
         resetTeach();
         void loadRules();
       } else {
@@ -401,7 +406,9 @@ async function loadRules(): Promise<void> {
       Record<string, Rule>;
   } catch { /* backend not reachable yet */ }
   try {
-    learned = await (await fetch(`${base}/sounds`)).json() as
+    // Signed in: the user's own taught sounds (from Atlas); else device-global.
+    learned = await (await fetch(`${base}${loggedIn ? "/me/sounds" : "/sounds"}`,
+                                 { credentials: "same-origin" })).json() as
       { name: string }[];
   } catch { /* ML may be absent; base sounds still render */ }
 

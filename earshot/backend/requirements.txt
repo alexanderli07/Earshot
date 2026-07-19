@@ -2,9 +2,13 @@ fastapi
 uvicorn[standard]
 httpx
 python-multipart
-# Per-user accounts (optional; only used when EARSHOT_MONGO_URI is set)
+# Per-user accounts (optional; only used when EARSHOT_MONGO_URI is set).
+# dnspython resolves mongodb+srv:// URIs (MongoDB Atlas); certifi supplies the
+# CA bundle for Atlas TLS on hosts that don't trust it out of the box.
 motor
 bcrypt
+dnspython
+certifi
 # Pi GPIO — off-Pi the app auto-falls back to a logging mock, so these only
 # install on the Pi. gpiozero needs a pin factory (rpi-lgpio on Bookworm).
 gpiozero; platform_machine == "aarch64" or platform_machine == "armv7l"
