@@ -50,13 +50,31 @@ from .sinks import Alerts, EventHub, pi_alert, push
 async def _build_user_store():
     """Create the Mongo-backed UserStore, or (None, None) when auth is off.
 
-    Split out so tests can monkeypatch it to inject an in-memory mongomock
-    database and run the real store code without a mongod.
+    Works with a local mongod OR MongoDB Atlas (mongodb+srv://...). Split out
+    so tests can monkeypatch it to inject an in-memory mongomock database and
+    run the real store code without a mongod.
     """
     if not config.MONGO_URI:
         return None, None
     from motor.motor_asyncio import AsyncIOMotorClient
-    client = AsyncIOMotorClient(config.MONGO_URI)
+
+    # Fail fast so a bad URI / unreachable cluster degrades to auth-off in a
+    # few seconds instead of hanging startup on the 30 s default.
+    kwargs = {"serverSelectionTimeoutMS": config.MONGO_TIMEOUT_MS,
+              "appname": "earshot"}
+    # Atlas (mongodb+srv) requires TLS; some hosts (python.org macOS) don't
+    # trust it without certifi's CA bundle. Only add it for TLS connections so
+    # a plain local mongodb:// URI is unaffected.
+    uri = config.MONGO_URI
+    if uri.startswith("mongodb+srv://") or "tls=true" in uri.lower():
+        import certifi
+        kwargs["tlsCAFile"] = certifi.where()
+
+    client = AsyncIOMotorClient(uri, **kwargs)
+    # Verify connectivity now so an Atlas misconfiguration (wrong password,
+    # IP not allow-listed, no dnspython) surfaces at startup with a clear
+    # message and is caught by lifespan — not on the first login request.
+    await client.admin.command("ping")
     store = UserStore(client[config.MONGO_DB])
     await store.ensure_indexes()
     return store, client

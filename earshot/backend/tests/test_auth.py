@@ -164,3 +164,20 @@ def test_alert_path_not_gated_by_auth(client):
     r = client.post("/debug/event",
                     json={"label": "smoke_alarm", "urgency": "high"})
     assert r.status_code == 200 and r.json()["accepted"] is True
+
+
+def test_bad_mongo_uri_degrades_to_auth_off(monkeypatch):
+    """An unreachable/misconfigured Mongo (e.g. wrong Atlas password or an
+    un-allow-listed IP) must not crash the server: auth turns off and the
+    live alert path keeps working."""
+    from app import config
+    monkeypatch.setattr(config, "MONGO_URI", "mongodb://127.0.0.1:1")
+    monkeypatch.setattr(config, "MONGO_TIMEOUT_MS", 500)
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as c:
+        assert c.get("/healthz").json()["auth"] is False
+        assert c.get("/auth/me").status_code == 503        # accounts disabled
+        assert c.post("/debug/event",
+                      json={"label": "knock", "urgency": "medium"}
+                      ).json()["accepted"] is True           # alerts still fire
