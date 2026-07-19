@@ -25,7 +25,6 @@ const CATEGORY_BY_LABEL: Record<string, Category> = {
   glass_break: "urgent",
   doorbell: "presence",
   knock: "presence",
-  microwave: "appliance",
 };
 
 /* Colors match the pitch page: alarm red, door blue, appliance amber,

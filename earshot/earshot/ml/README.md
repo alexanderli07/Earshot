@@ -43,7 +43,7 @@ The main modules are:
    queue.
 
 The supplied map includes smoke alarm, fire alarm, doorbell/ding-dong, knock,
-baby cry, glass break, and microwave events. The thresholds in
+baby cry, and glass break events. The thresholds in
 [`config.py`](earshot_ml/config.py) are starting points, not universal
 calibration.
 

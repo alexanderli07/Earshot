@@ -48,7 +48,7 @@ check(
   c({ label: "fire_smoke_alarm", source: "trained", urgency: "low" }) === "urgent",
 );
 check("doorbell is presence", c({ label: "doorbell", urgency: "medium" }) === "presence");
-check("microwave is appliance", c({ label: "microwave", urgency: "low" }) === "appliance");
+check("unknown low is appliance", c({ label: "mystery", urgency: "low" }) === "appliance");
 check("taught source wins", c({ label: "kettle", source: "taught", urgency: "high" }) === "taught");
 check("unknown high is urgent", c({ label: "mystery", urgency: "high" }) === "urgent");
 check("wsUrl shape", sandbox.wsUrl("pi:8000") === "ws://pi:8000/ws");

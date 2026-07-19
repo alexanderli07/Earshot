@@ -13,7 +13,6 @@ const CATEGORY_BY_LABEL = {
     glass_break: "urgent",
     doorbell: "presence",
     knock: "presence",
-    microwave: "appliance",
 };
 /* Colors match the pitch page: alarm red, door blue, appliance amber,
  * taught green. */

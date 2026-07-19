@@ -64,9 +64,9 @@ def test_recent_is_newest_first_and_bounded():
 
 def test_rules_mute_and_override():
     r = Rules(path=None)
-    ev = normalize_event({"label": "microwave", "urgency": "low"})
+    ev = normalize_event({"label": "kettle", "urgency": "low"})
     assert r.apply(ev) is not None                 # no rule -> passes
-    r.set("microwave", enabled=False)
+    r.set("kettle", enabled=False)
     assert r.apply(ev) is None                      # muted -> dropped
     r.set("doorbell", enabled=True, urgency="high")
     out = r.apply(normalize_event({"label": "doorbell", "urgency": "low"}))
@@ -87,10 +87,10 @@ def test_rules_set_rolls_back_memory_on_save_failure(tmp_path):
 
     r = FailingSave(path=tmp_path / "rules.json")
     with pytest.raises(OSError):
-        r.set("microwave", enabled=False)
+        r.set("kettle", enabled=False)
     # Memory must not diverge from disk: the failed rule is not live.
     assert r.all() == {}
-    assert r.apply(normalize_event({"label": "microwave"})) is not None
+    assert r.apply(normalize_event({"label": "kettle"})) is not None
 
 
 def test_dispatch_fans_out_and_reports_delivery():
@@ -185,11 +185,11 @@ def test_dispatch_muted_hits_no_sink():
         return 1
 
     rules = Rules(path=None)
-    rules.set("microwave", enabled=False)
+    rules.set("kettle", enabled=False)
     d = Dispatcher(RecentEvents(), rules, broadcast,
                    lambda u: calls.append(u), lambda e, p: _noop())
     event, delivery = asyncio.run(
-        d.dispatch({"label": "microwave", "urgency": "low"}))
+        d.dispatch({"label": "kettle", "urgency": "low"}))
     assert event is None and delivery is None and calls == []
 
 

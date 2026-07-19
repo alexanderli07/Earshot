@@ -26,7 +26,7 @@ troubleshooting details.
 ## What it hears
 
 Out of the box: **smoke alarm, fire alarm, doorbell, knock, baby cry, glass
-break, microwave**. Beyond that, teach mode learns any new sound (a kettle, a
+break**. Beyond that, teach mode learns any new sound (a kettle, a
 dryer buzzer) from ~3 recorded examples — no retraining, no cloud. Detection
 is fully local; internet is needed only for the one-time model download and
 optional phone push.

@@ -75,8 +75,6 @@ EVENT_MAP = [
      "threshold": 0.35, "urgency": "high"},
     {"label": "glass_break", "classes": ["Shatter"],
      "threshold": 0.40, "urgency": "high"},
-    {"label": "microwave", "classes": ["Microwave oven"],
-     "threshold": 0.40, "urgency": "low"},
 ]
 
 # Teach mode must never shadow a built-in event identity. Keep the normalized

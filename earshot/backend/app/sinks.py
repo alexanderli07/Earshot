@@ -53,8 +53,8 @@ class EventHub:
 # GPIO alerts — one serialized, priority-aware controller.
 #
 # A single worker thread owns the LED and motor. New alerts are admitted
-# only if they rank at least as high as whatever is active, so a microwave
-# ding can never cancel a smoke-alarm strobe, and only the worker ever
+# only if they rank at least as high as whatever is active, so a low-priority
+# chime can never cancel a smoke-alarm strobe, and only the worker ever
 # writes hardware state, so a superseded alert can't blank a newer one.
 # The named LED patterns (strobe/pulse/blink) are actually played.
 # ======================================================================

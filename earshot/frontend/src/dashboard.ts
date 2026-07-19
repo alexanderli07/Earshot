@@ -7,7 +7,7 @@
 
 const BASE_SOUNDS = [
   "fire_smoke_alarm", "smoke_alarm", "fire_alarm", "doorbell", "knock",
-  "baby_cry", "glass_break", "microwave",
+  "baby_cry", "glass_break",
 ];
 const FEED_LIMIT = 100;
 const CLIPS_REQUIRED = 3;

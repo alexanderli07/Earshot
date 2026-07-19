@@ -43,7 +43,7 @@ The main modules are:
    queue.
 
 The supplied map includes smoke alarm, fire alarm, doorbell/ding-dong, knock,
-baby cry, glass break, and microwave events. The thresholds in
+baby cry, and glass break events. The thresholds in
 [`config.py`](earshot_ml/config.py) are starting points, not universal
 calibration.
 
@@ -380,7 +380,7 @@ For manually organized data, add `manifest.json`:
 Positive `segments` should cover only alarm-active time, especially in files
 with speech or music. A group cannot contain both labels, and five-fold
 training needs at least five independent source groups per label. Useful hard
-negatives include timers, phone alarms, microwave/appliance beeps, sirens,
+negatives include timers, phone alarms, appliance beeps, sirens,
 security/car alarms, whistles, music, speech, clapping, and room ambience.
 
 The 17 WAVs currently tracked under `data/alarm_demo` are a frozen demo-data
