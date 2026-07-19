@@ -85,6 +85,19 @@
     padding-top: 3px;
   }
 
+  .nav {
+    display: flex; align-items: center; gap: 18px;
+    margin-left: 4px; padding-top: 2px;
+  }
+  .nav a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-soft); text-decoration: none;
+    padding-bottom: 3px; border-bottom: 2px solid transparent;
+  }
+  .nav a:hover { color: var(--ink); }
+  .nav a.active { color: var(--ink); border-bottom-color: var(--door); }
+
   .grow { flex: 1; }
 
   .auth {
@@ -385,7 +398,11 @@
     <rect x="17.3" y="7" width="6" height="18" rx="3" fill="#DB8B00"/>
     <rect x="26" y="11" width="6" height="10" rx="3" fill="#178A50"/>
   </svg>
-  <h1>EARSHOT</h1><span class="sub">Dashboard</span>
+  <h1>EARSHOT</h1>
+  <nav class="nav">
+    <a data-nav="dashboard.html">Dashboard</a>
+    <a data-nav="wearable.html">Wearable</a>
+  </nav>
   <div class="grow"></div>
   <span id="auth" class="auth"></span>
   <button id="theme" type="button" aria-label="Toggle color theme">dark mode</button>

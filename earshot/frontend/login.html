@@ -40,6 +40,13 @@
   }
   .tabs button.active { background: var(--card); color: var(--ink);
     box-shadow: 0 1px 2px rgba(16,21,28,.08); }
+  .nav { display: flex; justify-content: center; gap: 18px; margin-top: 20px; }
+  .nav a { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft);
+    text-decoration: none; padding-bottom: 3px;
+    border-bottom: 2px solid transparent; }
+  .nav a:hover { color: var(--ink); }
+  .nav a.active { color: var(--ink); border-bottom-color: var(--door); }
   label.fld { display: block; font-family: 'IBM Plex Mono', monospace;
     font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
     color: var(--ink-soft); margin: 14px 0 5px; }
@@ -94,6 +101,11 @@
       <button class="btn" id="submit" type="submit">Sign in</button>
       <div class="note" id="note" role="status"></div>
     </form>
+
+    <nav class="nav">
+      <a data-nav="dashboard.html">Dashboard</a>
+      <a data-nav="wearable.html">Wearable</a>
+    </nav>
   </div>
 
   <script src="js/shared.js"></script>

@@ -59,6 +59,19 @@
 
   .mark { display: block; margin-bottom: 18px; }
 
+  .nav {
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    margin-top: 24px;
+  }
+  .nav a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--soft); text-decoration: none;
+    padding-bottom: 3px; border-bottom: 2px solid transparent;
+  }
+  .nav a:hover { color: var(--paper); }
+  .nav a.active { color: var(--paper); border-bottom-color: var(--door); }
+
   /* ---------- arm ---------- */
 
   #arm h1 {
@@ -178,6 +191,10 @@
   <p>Tap arm to start. This enables vibration and keeps the screen awake.</p>
   <input id="armhost" placeholder="pi-ip:8000">
   <button id="armBtn">ARM</button>
+  <nav class="nav">
+    <a data-nav="dashboard.html">Dashboard</a>
+    <a data-nav="wearable.html">Wearable</a>
+  </nav>
 </div>
 
 <div class="screen hidden" id="idle">
