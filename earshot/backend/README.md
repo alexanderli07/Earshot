@@ -115,7 +115,11 @@ both the CLI and direct/backend teach API.
 
 Login + per-user rules and preferences live in MongoDB. **Auth is disabled
 until `EARSHOT_MONGO_URI` is set**, so the demo runs with zero Mongo and
-nothing here changes unless you opt in:
+nothing here changes unless you opt in.
+
+No MongoDB installed? `./setup-mongo.sh` downloads the community server to
+`~/.local/mongodb` and starts it on `localhost:27017` — no Homebrew, Docker,
+or admin rights needed. Then:
 
 ```bash
 export EARSHOT_MONGO_URI=mongodb://localhost:27017   # enable accounts
