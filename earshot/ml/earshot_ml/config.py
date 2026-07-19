@@ -37,9 +37,13 @@ ALARM_MODEL_PATH = Path(
     or MODEL_DIR / "fire_smoke_alarm_head.npz"
 )
 ALARM_REPORT_PATH = MODEL_DIR / "fire_smoke_alarm_report.json"
-ALARM_EVENT_LABEL = "fire_smoke_alarm"
+ALARM_EVENT_LABEL = "smoke_alarm"
 ALARM_EVENT_URGENCY = "high"
-ALARM_REPLACED_LABELS = frozenset({"fire_alarm", "smoke_alarm"})
+ALARM_REPLACED_LABELS = frozenset({"smoke_alarm"})
+LEGACY_ALARM_EVENT_LABELS = frozenset({
+    "fire_alarm",
+    "fire_smoke_alarm",
+})
 ALARM_GATE_COUNT = 2
 ALARM_GATE_WINDOW = 8
 
@@ -63,9 +67,8 @@ CLASS_MAP_ARTIFACT = Artifact(
 # exactly. Thresholds are starting points; tune with clips played into real
 # room noise.
 EVENT_MAP = [
-    {"label": "smoke_alarm", "classes": ["Smoke detector, smoke alarm"],
-     "threshold": 0.30, "urgency": "high"},
-    {"label": "fire_alarm", "classes": ["Fire alarm"],
+    {"label": "smoke_alarm",
+     "classes": ["Smoke detector, smoke alarm", "Fire alarm"],
      "threshold": 0.30, "urgency": "high"},
     {"label": "doorbell", "classes": ["Doorbell", "Ding-dong"],
      "threshold": 0.35, "urgency": "medium"},
@@ -83,4 +86,5 @@ EVENT_MAP = [
 RESERVED_EVENT_LABELS = frozenset({
     *(entry["label"].strip().casefold() for entry in EVENT_MAP),
     ALARM_EVENT_LABEL.strip().casefold(),
+    *(label.casefold() for label in LEGACY_ALARM_EVENT_LABELS),
 })

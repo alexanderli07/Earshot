@@ -47,6 +47,11 @@ check(
   "fire_smoke_alarm stays urgent when urgency is low",
   c({ label: "fire_smoke_alarm", source: "trained", urgency: "low" }) === "urgent",
 );
+check(
+  "legacy alarm labels display as smoke alarm",
+  sandbox.prettyLabel("fire_alarm") === "smoke alarm" &&
+    sandbox.prettyLabel("fire_smoke_alarm") === "smoke alarm",
+);
 check("doorbell is presence", c({ label: "doorbell", urgency: "medium" }) === "presence");
 check("unknown low is appliance", c({ label: "mystery", urgency: "low" }) === "appliance");
 check("taught source wins", c({ label: "kettle", source: "taught", urgency: "high" }) === "taught");
@@ -54,8 +59,10 @@ check("unknown high is urgent", c({ label: "mystery", urgency: "high" }) === "ur
 check("wsUrl shape", sandbox.wsUrl("pi:8000") === "ws://pi:8000/ws");
 const baseSounds = /const BASE_SOUNDS = \[([\s\S]*?)\];/.exec(dashboardSource)?.[1] ?? "";
 check(
-  "fire_smoke_alarm has a base rule",
-  baseSounds.includes('"fire_smoke_alarm"'),
+  "smoke_alarm is the only alarm base rule",
+  baseSounds.includes('"smoke_alarm"') &&
+    !baseSounds.includes('"fire_alarm"') &&
+    !baseSounds.includes('"fire_smoke_alarm"'),
 );
 
 /* ---- WAV roundtrip: encodeWav -> ML python loader ---- */

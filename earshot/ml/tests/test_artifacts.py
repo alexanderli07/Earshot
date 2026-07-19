@@ -384,10 +384,22 @@ def test_config_defines_alarm_paths_under_expected_roots(monkeypatch, tmp_path):
 
 
 def test_config_defines_trained_alarm_runtime_contract():
-    assert config.ALARM_EVENT_LABEL == "fire_smoke_alarm"
+    assert config.ALARM_EVENT_LABEL == "smoke_alarm"
     assert config.ALARM_EVENT_URGENCY == "high"
-    assert config.ALARM_REPLACED_LABELS == frozenset(
-        {"fire_alarm", "smoke_alarm"}
+    assert config.ALARM_REPLACED_LABELS == frozenset({"smoke_alarm"})
+    alarm_specs = [
+        entry
+        for entry in config.EVENT_MAP
+        if "alarm" in entry["label"]
+    ]
+    assert alarm_specs == [{
+        "label": "smoke_alarm",
+        "classes": ["Smoke detector, smoke alarm", "Fire alarm"],
+        "threshold": 0.30,
+        "urgency": "high",
+    }]
+    assert config.LEGACY_ALARM_EVENT_LABELS == frozenset(
+        {"fire_alarm", "fire_smoke_alarm"}
     )
     assert config.ALARM_GATE_COUNT == 2
     assert config.ALARM_GATE_WINDOW == 8
@@ -395,6 +407,7 @@ def test_config_defines_trained_alarm_runtime_contract():
         {
             *(entry["label"].strip().casefold() for entry in config.EVENT_MAP),
             config.ALARM_EVENT_LABEL.strip().casefold(),
+            *(label.casefold() for label in config.LEGACY_ALARM_EVENT_LABELS),
         }
     )
 

@@ -25,8 +25,9 @@ troubleshooting details.
 
 ## What it hears
 
-Out of the box: **smoke alarm, fire alarm, doorbell, knock, baby cry, glass
-break**. Beyond that, teach mode learns any new sound (a kettle, a
+Out of the box: **smoke alarm, doorbell, knock, baby cry, and glass break**.
+The single smoke-alarm event responds to both YAMNet's smoke-detector and fire-
+alarm classes. Beyond that, teach mode learns any new sound (a kettle, a
 dryer buzzer) from ~3 recorded examples — no retraining, no cloud. Detection
 is fully local; internet is needed only for the one-time model download and
 optional phone push.

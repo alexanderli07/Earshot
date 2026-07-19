@@ -44,9 +44,14 @@ def make_engine(yamnet, **kwargs):
 
 
 def test_pretrained_event_fires_after_two_windows():
-    result = (np.array([0.90], dtype=np.float32), embedding(1))
-    engine = make_engine(FakeYamNet([result, result]))
+    result = (np.array([0.0, 0.90], dtype=np.float32), embedding(1))
+    engine = make_engine(FakeYamNet(
+        [result, result],
+        class_names=["Smoke detector, smoke alarm", "Fire alarm"],
+    ))
 
+    assert [spec["label"] for spec in engine._specs] == ["smoke_alarm"]
+    assert set(engine._specs[0]["indices"]) == {0, 1}
     assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
     events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5)
 
@@ -144,13 +149,17 @@ def test_teach_rejects_invalid_names_before_inference(name):
     assert engine.learned_sounds() == []
 
 
-def test_teach_rejects_pretrained_label_case_insensitively_after_trim():
+@pytest.mark.parametrize(
+    "reserved_name",
+    ["SmOkE_AlArM", "FiRe_AlArM", "FiRe_SmOkE_AlArM"],
+)
+def test_teach_rejects_reserved_alarm_labels_after_trim(reserved_name):
     fake = FakeYamNet(class_names=[])
     engine = make_engine(fake)
 
     with pytest.raises(ValueError):
         engine.teach(
-            "  SmOkE_AlArM  ",
+            f"  {reserved_name}  ",
             [np.ones(config.WINDOW_SAMPLES, dtype=np.float32)],
         )
 

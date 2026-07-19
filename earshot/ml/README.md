@@ -42,8 +42,9 @@ The main modules are:
 6. Fired events go synchronously to the configured callback and/or event
    queue.
 
-The supplied map includes smoke alarm, fire alarm, doorbell/ding-dong, knock,
-baby cry, and glass break events. The thresholds in
+The supplied map includes one `smoke_alarm` event backed by both the YAMNet
+smoke-detector and fire-alarm classes, plus doorbell/ding-dong, knock, baby
+cry, and glass break events. The thresholds in
 [`config.py`](earshot_ml/config.py) are starting points, not universal
 calibration.
 
@@ -70,8 +71,8 @@ simultaneous `teach` or `forget` commands.
 
 ### Trained fire/smoke alarm flow
 
-The optional `fire_smoke_alarm` detector is a small transfer-learning head on
-top of the same frozen YAMNet embeddings:
+The optional trained alarm detector emits the public `smoke_alarm` event from
+a small transfer-learning head on top of the same frozen YAMNet embeddings:
 
 1. `collect` copies validated WAVs or records microphone clips into
    `data/alarm_demo/{alarm,not_alarm}` without modifying the source files.
@@ -84,11 +85,14 @@ top of the same frozen YAMNet embeddings:
 5. Runtime fires after at least two qualifying windows among the most recent
    eight, then applies the normal 10-second source-aware debounce.
 
-When a compatible head is present, it replaces only the generic
-`smoke_alarm`/`fire_alarm` mappings with one shared high-urgency trained event.
-All unrelated pretrained and taught events remain active. With no head, the
-legacy labels behave exactly as before. A present but corrupt or checksum-
-incompatible head fails startup clearly rather than silently falling back.
+When a compatible head is present, it replaces the generic `smoke_alarm`
+mapping and emits the same high-urgency event from the trained source. Without
+a head, the combined YAMNet smoke-detector and fire-alarm classes still emit
+`smoke_alarm`. All unrelated pretrained and taught events remain active. A
+present but corrupt or checksum-incompatible head fails startup clearly rather
+than silently falling back. Artifacts carrying the legacy `fire_smoke_alarm`
+label remain load-compatible and are canonicalized at runtime; newly trained
+artifacts store `smoke_alarm`.
 
 The mandatory training ceilings are complete positive-source-group recall, no
 more than 20% of negative source groups triggered, and at most 0.5 false events
@@ -319,7 +323,7 @@ earshot run --device 3
 
 `top5` is useful for device selection, gain checks, and discovering which
 YAMNet class responds to a sound. When a compatible trained head exists it
-also appends `fire_smoke_alarm <score>` once per window. `run` prints fired
+also appends `smoke_alarm <score>` once per window. `run` prints fired
 event dictionaries as JSON. Both block until **Ctrl+C**.
 
 ### Teach from files or the microphone
@@ -333,7 +337,7 @@ earshot forget kettle
 
 Provide at least one WAV path or a positive `--record` count. Names are
 trimmed, must not be empty, and cannot collide case-insensitively with a
-configured event label such as `smoke_alarm`, `fire_smoke_alarm`, or `doorbell`.
+configured event label such as `smoke_alarm` or `doorbell`.
 Record examples at the expected distance and against representative room
 noise.
 
@@ -487,7 +491,7 @@ Each fired event is a dictionary with the existing public shape:
 
 ```json
 {
-  "label": "fire_smoke_alarm",
+  "label": "smoke_alarm",
   "urgency": "high",
   "confidence": 0.997,
   "source": "trained",
@@ -622,7 +626,7 @@ tuning model thresholds.
 ### Teach rejects a name or asks for clips
 
 Use a non-empty name that does not collide with any reserved configured or
-trained label, including `fire_smoke_alarm`. Provide one or more WAV paths, a
+trained label, including `smoke_alarm`. Provide one or more WAV paths, a
 positive `--record N`, or both.
 
 ### Taught store is corrupt or incompatible

@@ -7,9 +7,7 @@
 /* Palette per the pitch: red urgent, blue someone-is-here, amber appliance,
  * green taught. */
 const CATEGORY_BY_LABEL = {
-    fire_smoke_alarm: "urgent",
     smoke_alarm: "urgent",
-    fire_alarm: "urgent",
     baby_cry: "urgent",
     glass_break: "urgent",
     doorbell: "presence",
@@ -23,10 +21,17 @@ const CATEGORY_COLOR = {
     appliance: "#DB8B00",
     taught: "#178A50",
 };
+const LEGACY_EVENT_LABELS = {
+    fire_alarm: "smoke_alarm",
+    fire_smoke_alarm: "smoke_alarm",
+};
+function canonicalEventLabel(label) {
+    return LEGACY_EVENT_LABELS[label] ?? label;
+}
 function categoryOf(ev) {
     if (ev.source === "taught")
         return "taught";
-    const mapped = CATEGORY_BY_LABEL[ev.label];
+    const mapped = CATEGORY_BY_LABEL[canonicalEventLabel(ev.label)];
     if (mapped)
         return mapped;
     if (ev.urgency === "high")
@@ -36,7 +41,7 @@ function categoryOf(ev) {
     return "presence";
 }
 function prettyLabel(label) {
-    return (label || "").replace(/_/g, " ");
+    return canonicalEventLabel(label || "").replace(/_/g, " ");
 }
 function clockTime(ts) {
     const ms = (ts ?? Date.now() / 1000) * 1000;

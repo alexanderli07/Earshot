@@ -389,7 +389,7 @@ def test_train_alarm_passes_paths_and_seed(monkeypatch, tmp_path, capsys):
         9,
     )]
     assert capsys.readouterr().out.strip() == (
-        "trained fire_smoke_alarm threshold 0.730; recall 7/7; "
+        "trained smoke_alarm threshold 0.730; recall 7/7; "
         "negative groups 0/10; false triggers/min 0.000"
     )
 
@@ -474,6 +474,8 @@ def test_top5_displays_optional_alarm_score_and_loads_head_once(
             return [("Siren", float(scores[0]))]
 
     class FakeHead:
+        label = "smoke_alarm"
+
         def score(self, embedding):
             embeddings.append(embedding.copy())
             return 0.42
@@ -500,7 +502,7 @@ def test_top5_displays_optional_alarm_score_and_loads_head_once(
 
     output = capsys.readouterr().out
     assert "Siren 0.80" in output
-    assert "fire_smoke_alarm 0.42" in output
+    assert "smoke_alarm 0.42" in output
     assert len(loaded) == 1
     assert loaded[0] == (model_path, {
         "yamnet_model_path": cli.config.MODEL_PATH,
@@ -545,7 +547,7 @@ def test_top5_without_alarm_head_omits_trained_score(monkeypatch, capsys):
 
     output = capsys.readouterr().out
     assert "Siren 0.80" in output
-    assert "fire_smoke_alarm" not in output
+    assert "smoke_alarm" not in output
     assert len(loaded) == 1
 
 
@@ -992,12 +994,13 @@ def test_teach_rejects_reserved_name_before_engine_recording_or_files(
     assert exc_info.value.code != 0
     stderr = capsys.readouterr().err.lower()
     assert "smoke_alarm" in stderr
-    assert "pretrained label" in stderr
+    assert "trained alarm label" in stderr
     assert "traceback" not in stderr
 
 
-def test_teach_rejects_trained_alarm_name_before_any_side_effect(
-        tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("legacy_name", ["FIRE_ALARM", "FIRE_SMOKE_ALARM"])
+def test_teach_rejects_legacy_alarm_name_before_any_side_effect(
+        tmp_path, monkeypatch, capsys, legacy_name):
     monkeypatch.setattr(cli, "EarshotML", _forbid_model_use)
     monkeypatch.setattr(cli, "YamNet", _forbid_model_use)
     monkeypatch.setattr(cli, "record", _forbid_model_use)
@@ -1008,7 +1011,7 @@ def test_teach_rejects_trained_alarm_name_before_any_side_effect(
     with pytest.raises(SystemExit) as exc_info:
         cli.main([
             "teach",
-            "  FIRE_SMOKE_ALARM  ",
+            f"  {legacy_name}  ",
             str(tmp_path / "missing.wav"),
             "--record",
             "1",
@@ -1016,8 +1019,8 @@ def test_teach_rejects_trained_alarm_name_before_any_side_effect(
 
     assert exc_info.value.code != 0
     stderr = capsys.readouterr().err.lower()
-    assert "fire_smoke_alarm" in stderr
-    assert "trained" in stderr
+    assert legacy_name.casefold() in stderr
+    assert "pretrained" in stderr
     assert "traceback" not in stderr
 
 

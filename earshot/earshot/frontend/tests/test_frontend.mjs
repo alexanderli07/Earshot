@@ -36,6 +36,9 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(readFileSync(join(here, "..", "js", "shared.js"), "utf8"),
                 sandbox);
+const dashboardSource = readFileSync(
+  join(here, "..", "js", "dashboard.js"), "utf8",
+);
 
 /* ---- categoryOf: palette mapping ---- */
 const c = (ev) => sandbox.categoryOf(ev);
@@ -45,6 +48,18 @@ check("unknown low is appliance", c({ label: "mystery", urgency: "low" }) === "a
 check("taught source wins", c({ label: "kettle", source: "taught", urgency: "high" }) === "taught");
 check("unknown high is urgent", c({ label: "mystery", urgency: "high" }) === "urgent");
 check("wsUrl shape", sandbox.wsUrl("pi:8000") === "ws://pi:8000/ws");
+check(
+  "legacy alarm labels display as smoke alarm",
+  sandbox.prettyLabel("fire_alarm") === "smoke alarm" &&
+    sandbox.prettyLabel("fire_smoke_alarm") === "smoke alarm",
+);
+const baseSounds = /const BASE_SOUNDS = \[([\s\S]*?)\];/.exec(dashboardSource)?.[1] ?? "";
+check(
+  "smoke_alarm is the only alarm base rule",
+  baseSounds.includes('"smoke_alarm"') &&
+    !baseSounds.includes('"fire_alarm"') &&
+    !baseSounds.includes('"fire_smoke_alarm"'),
+);
 
 /* ---- WAV roundtrip: encodeWav -> ML python loader ---- */
 const rate = 48000, seconds = 1.0, freq = 440;

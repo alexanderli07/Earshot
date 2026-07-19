@@ -6,8 +6,7 @@
 (() => {
 
 const BASE_SOUNDS = [
-  "smoke_alarm", "fire_alarm", "doorbell", "knock",
-  "baby_cry", "glass_break",
+  "smoke_alarm", "doorbell", "knock", "baby_cry", "glass_break",
 ];
 const FEED_LIMIT = 100;
 const CLIPS_REQUIRED = 3;
@@ -224,7 +223,10 @@ async function loadRules(): Promise<void> {
   } catch { /* ML may be absent; base sounds still render */ }
 
   const labels =
-    [...new Set([...BASE_SOUNDS, ...learned.map((s) => s.name)])];
+    [...new Set([
+      ...BASE_SOUNDS,
+      ...learned.map((sound) => canonicalEventLabel(sound.name)),
+    ])];
   rulesList.innerHTML = "";
   for (const label of labels) {
     const rule = rules[label] ?? { enabled: true, urgency: null };

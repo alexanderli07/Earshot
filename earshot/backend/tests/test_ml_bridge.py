@@ -124,7 +124,7 @@ def test_stop_signals_listener_and_joins_thread():
 
 def test_trained_source_passes_through_listener_callback():
     event = {
-        "label": "fire_smoke_alarm",
+        "label": "smoke_alarm",
         "urgency": "high",
         "confidence": 0.93,
         "source": "trained",
@@ -163,7 +163,7 @@ def test_dispatch_failure_is_reported_without_stopping_listener(capsys):
 
         def run(self, stop_event):
             self.on_event({
-                "label": "fire_smoke_alarm",
+                "label": "smoke_alarm",
                 "urgency": "high",
                 "source": "trained",
             })

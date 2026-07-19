@@ -59,7 +59,7 @@ def cmd_top5(args):
         )
         if alarm_head is not None:
             top += (
-                "  |  fire_smoke_alarm "
+                f"  |  {alarm_head.label} "
                 f"{alarm_head.score(embedding):.2f}"
             )
         peak = float(abs(waveform).max())
@@ -220,7 +220,7 @@ def cmd_train_alarm(args):
     )
     metrics = report.oof_metrics
     print(
-        f"trained fire_smoke_alarm threshold "
+        f"trained {config.ALARM_EVENT_LABEL} threshold "
         f"{report.deployment_threshold:.3f}; "
         f"recall {metrics.positive_groups_triggered}/"
         f"{metrics.positive_groups_total}; "

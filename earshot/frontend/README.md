@@ -63,10 +63,9 @@ load when internet is available and fall back to system fonts offline.
 Wearable vibration patterns mirror the Pi motor patterns
 (high = strobe + long buzz, medium = one pulse, low = short tick).
 
-The trained `fire_smoke_alarm` label is explicitly urgent and receives its own
-base rule. Legacy `smoke_alarm` and `fire_alarm` labels remain for operation
-without a trained head. Existing saved rules are not automatically copied to
-the new label; configure it explicitly after deployment.
+The dashboard exposes one `smoke_alarm` base rule. Both raw YAMNet alarm
+classes and the trained head emit that label; legacy `fire_alarm` and
+`fire_smoke_alarm` events are also displayed as “smoke alarm.”
 
 ## Tests
 

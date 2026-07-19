@@ -21,6 +21,34 @@ from . import config
 
 _ids = count(1)
 _VALID_URGENCY = set(config.ALERT_PROFILES)
+_EVENT_LABEL_ALIASES = {
+    "fire_alarm": "smoke_alarm",
+    "fire_smoke_alarm": "smoke_alarm",
+}
+_LEGACY_ALARM_LABELS = ("fire_smoke_alarm", "fire_alarm")
+
+
+def canonical_event_label(label):
+    """Map retired alarm identities to the single public event label."""
+    label = str(label)
+    return _EVENT_LABEL_ALIASES.get(label, label)
+
+
+def _canonicalize_rules(rules):
+    """Preserve canonical rules and migrate at most one legacy alarm rule."""
+    if not isinstance(rules, dict):
+        return {}
+    canonical = {
+        str(label): rule
+        for label, rule in rules.items()
+        if str(label) not in _EVENT_LABEL_ALIASES
+    }
+    if "smoke_alarm" not in canonical:
+        for legacy_label in _LEGACY_ALARM_LABELS:
+            if legacy_label in rules:
+                canonical["smoke_alarm"] = rules[legacy_label]
+                break
+    return canonical
 
 
 def normalize_event(raw, source_default="pretrained"):
@@ -32,7 +60,7 @@ def normalize_event(raw, source_default="pretrained"):
     urgency = raw.get("urgency", config.DEFAULT_URGENCY)
     if urgency not in _VALID_URGENCY:
         urgency = config.DEFAULT_URGENCY
-    label = str(raw.get("label", "unknown"))
+    label = canonical_event_label(raw.get("label", "unknown"))
     # NaN/inf must not reach JSON clients; clamp confidence into 0..1.
     try:
         confidence = float(raw.get("confidence", 1.0))
@@ -89,7 +117,7 @@ class Rules:
         self._rules = {}
         if path is not None and path.exists():
             try:
-                self._rules = json.loads(path.read_text())
+                self._rules = _canonicalize_rules(json.loads(path.read_text()))
             except (json.JSONDecodeError, OSError):
                 self._rules = {}   # a corrupt rules file must not brick startup
 
@@ -99,13 +127,17 @@ class Rules:
     def set(self, label, enabled=True, urgency=None):
         if urgency is not None and urgency not in _VALID_URGENCY:
             raise ValueError(f"invalid urgency {urgency!r}")
+        canonical_label = canonical_event_label(label)
         # Copy-on-write: persist a candidate first, swap live state only on
         # success, so memory never diverges from disk after a failed save.
         candidate = dict(self._rules)
-        candidate[str(label)] = {"enabled": bool(enabled), "urgency": urgency}
+        candidate[canonical_label] = {
+            "enabled": bool(enabled),
+            "urgency": urgency,
+        }
         self._save(candidate)
         self._rules = candidate
-        return dict(candidate[str(label)])
+        return dict(candidate[canonical_label])
 
     def apply(self, event):
         """Return the event (possibly with overridden urgency), or None if the

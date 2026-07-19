@@ -41,7 +41,7 @@ class FakeYamNet:
 
 
 class FakeAlarmHead:
-    label = "fire_smoke_alarm"
+    label = "smoke_alarm"
     urgency = "high"
     threshold = 0.70
     gate_count = 2
@@ -158,7 +158,7 @@ def test_same_label_from_taught_and_pretrained_has_independent_state():
 
 def test_missing_alarm_artifact_preserves_exact_generic_fallback(tmp_path):
     result = (
-        np.array([0.0, 0.99, 0.0], dtype=np.float32),
+        np.array([0.99, 0.0, 0.0], dtype=np.float32),
         embedding(1),
     )
     fake = FakeYamNet(
@@ -178,9 +178,9 @@ def test_missing_alarm_artifact_preserves_exact_generic_fallback(tmp_path):
     assert engine.alarm_head is None
     assert [spec["label"] for spec in engine._specs] == [
         "smoke_alarm",
-        "fire_alarm",
         "doorbell",
     ]
+    assert set(engine._specs[0]["indices"]) == {0, 1}
     assert engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.0) == []
     events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5)
     assert [(event.label, event.source) for event in events] == [
@@ -239,7 +239,7 @@ def test_trained_head_uses_same_embedding_and_two_of_eight_gate():
     events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=2.0)
 
     assert [(event.label, event.source) for event in events] == [
-        ("fire_smoke_alarm", "trained")
+        ("smoke_alarm", "trained")
     ]
     assert len(fake.infer_calls) == 3
     assert head.score_calls == [positive, negative, positive]
@@ -292,7 +292,7 @@ def test_trained_head_preserves_doorbell_and_taught_events():
     ]
     assert [(event.label, event.source) for event in second] == [
         ("doorbell", "pretrained"),
-        ("fire_smoke_alarm", "trained"),
+        ("smoke_alarm", "trained"),
     ]
 
 
@@ -316,8 +316,8 @@ def test_trained_alarm_uses_unchanged_ten_second_debounce():
         )
 
     assert [(event.label, event.timestamp) for event in fired] == [
-        ("fire_smoke_alarm", 0.5),
-        ("fire_smoke_alarm", 10.5),
+        ("smoke_alarm", 0.5),
+        ("smoke_alarm", 10.5),
     ]
 
 
@@ -342,7 +342,7 @@ def test_trained_alarm_gate_state_is_independent_per_engine():
     events = first.process_window(np.zeros(config.WINDOW_SAMPLES), now=1.5)
 
     assert [(event.label, event.source) for event in events] == [
-        ("fire_smoke_alarm", "trained")
+        ("smoke_alarm", "trained")
     ]
 
 
@@ -364,7 +364,7 @@ def test_trained_event_callback_and_queue_keep_exact_public_payload():
     events = engine.process_window(np.zeros(config.WINDOW_SAMPLES), now=42.0)
 
     expected = {
-        "label": "fire_smoke_alarm",
+        "label": "smoke_alarm",
         "urgency": "high",
         "confidence": 1.0,
         "source": "trained",
@@ -428,8 +428,12 @@ def test_teach_rejects_pretrained_label_case_insensitively_after_trim():
     assert engine.learned_sounds() == []
 
 
-def test_teach_rejects_trained_alarm_label_before_files_or_store_mutation(
-        tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "reserved_name",
+    ["FIRE_ALARM", "FIRE_SMOKE_ALARM"],
+)
+def test_teach_rejects_legacy_alarm_label_before_files_or_store_mutation(
+        tmp_path, monkeypatch, reserved_name):
     store_path = tmp_path / "taught.npz"
     original = core.TeachStore(store_path)
     original.add("keep", embedding())
@@ -448,7 +452,7 @@ def test_teach_rejects_trained_alarm_label_before_files_or_store_mutation(
     monkeypatch.setattr(core, "load_wav_16k_mono", forbid_file_load)
 
     with pytest.raises(ValueError, match="reserved"):
-        engine.teach("  FIRE_SMOKE_ALARM  ", [tmp_path / "missing.wav"])
+        engine.teach(f"  {reserved_name}  ", [tmp_path / "missing.wav"])
 
     assert fake.infer_calls == []
     assert engine.learned_sounds() == [{"name": "keep", "clips": 1}]
@@ -810,4 +814,4 @@ def test_run_capture_gap_preserves_event_debounce(monkeypatch):
 
     engine.run()
 
-    assert [event["label"] for event in emitted] == ["fire_smoke_alarm"]
+    assert [event["label"] for event in emitted] == ["smoke_alarm"]

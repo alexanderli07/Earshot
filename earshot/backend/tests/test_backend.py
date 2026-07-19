@@ -10,6 +10,7 @@ GPIO auto-mocks off-Pi; ntfy is monkeypatched; no network or hardware needed.
 """
 
 import asyncio
+import json
 import sys
 import threading
 from pathlib import Path
@@ -34,6 +35,13 @@ def test_normalize_fills_defaults_and_ids():
     assert a["source"] == "pretrained"
     assert a["id"] != b["id"]                      # unique ids
     assert 0.0 <= a["confidence"] <= 1.0
+
+
+@pytest.mark.parametrize("legacy_label", ["fire_alarm", "fire_smoke_alarm"])
+def test_normalize_maps_legacy_alarm_labels(legacy_label):
+    event = normalize_event({"label": legacy_label})
+
+    assert event["label"] == "smoke_alarm"
 
 
 def test_normalize_rejects_bad_urgency():
@@ -78,6 +86,47 @@ def test_rules_persist_roundtrip(tmp_path):
     Rules(path=path).set("kettle", enabled=False, urgency=None)
     assert Rules(path=path).all() == {
         "kettle": {"enabled": False, "urgency": None}}
+
+
+def test_rules_set_canonicalizes_legacy_alarm_labels():
+    rules = Rules(path=None)
+
+    rules.set("fire_alarm", enabled=False, urgency="high")
+    rules.set("fire_smoke_alarm", enabled=True, urgency="medium")
+
+    assert rules.all() == {
+        "smoke_alarm": {"enabled": True, "urgency": "medium"},
+    }
+    event = rules.apply(normalize_event({"label": "fire_alarm"}))
+    assert event["label"] == "smoke_alarm"
+    assert event["urgency"] == "medium"
+
+
+def test_rules_load_prefers_canonical_alarm_rule(tmp_path):
+    path = tmp_path / "rules.json"
+    path.write_text(json.dumps({
+        "fire_alarm": {"enabled": False, "urgency": "low"},
+        "fire_smoke_alarm": {"enabled": False, "urgency": "medium"},
+        "smoke_alarm": {"enabled": True, "urgency": "high"},
+        "doorbell": {"enabled": True, "urgency": None},
+    }))
+
+    assert Rules(path=path).all() == {
+        "smoke_alarm": {"enabled": True, "urgency": "high"},
+        "doorbell": {"enabled": True, "urgency": None},
+    }
+
+
+def test_rules_load_migrates_one_legacy_alarm_rule_deterministically(tmp_path):
+    path = tmp_path / "rules.json"
+    path.write_text(json.dumps({
+        "fire_alarm": {"enabled": True, "urgency": "low"},
+        "fire_smoke_alarm": {"enabled": False, "urgency": "medium"},
+    }))
+
+    assert Rules(path=path).all() == {
+        "smoke_alarm": {"enabled": False, "urgency": "medium"},
+    }
 
 
 def test_rules_set_rolls_back_memory_on_save_failure(tmp_path):
@@ -147,7 +196,7 @@ def test_trained_alarm_preserves_source_and_uses_highest_gpio_priority():
         "source": "trained",
     }))
 
-    assert event["label"] == "fire_smoke_alarm"
+    assert event["label"] == "smoke_alarm"
     assert event["source"] == "trained"
     assert event["urgency"] == "high"
     assert calls["alert"] == ["high"]
@@ -265,9 +314,9 @@ class StubMLBridge:
         self.stopped = True
 
     def teach(self, name, blobs):
-        if name.strip().casefold() == "fire_smoke_alarm":
+        if name.strip().casefold() == "smoke_alarm":
             raise ValueError(
-                "teach name 'fire_smoke_alarm' conflicts with a trained label"
+                "teach name 'smoke_alarm' conflicts with a trained label"
             )
         raise RuntimeError("ML not available")
 
@@ -363,7 +412,7 @@ def test_teach_reports_ml_unavailable_as_503(client):
 def test_teach_rejects_trained_alarm_label_as_422(client):
     files = [("clips", (f"c{i}.wav", b"RIFF", "audio/wav")) for i in range(3)]
     resp = client.post(
-        "/teach", data={"name": "fire_smoke_alarm"}, files=files
+        "/teach", data={"name": "smoke_alarm"}, files=files
     )
 
     assert resp.status_code == 422

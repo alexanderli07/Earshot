@@ -20,7 +20,6 @@ type Category = "urgent" | "presence" | "appliance" | "taught";
  * green taught. */
 const CATEGORY_BY_LABEL: Record<string, Category> = {
   smoke_alarm: "urgent",
-  fire_alarm: "urgent",
   baby_cry: "urgent",
   glass_break: "urgent",
   doorbell: "presence",
@@ -36,9 +35,18 @@ const CATEGORY_COLOR: Record<Category, string> = {
   taught: "#178A50",
 };
 
+const LEGACY_EVENT_LABELS: Record<string, string> = {
+  fire_alarm: "smoke_alarm",
+  fire_smoke_alarm: "smoke_alarm",
+};
+
+function canonicalEventLabel(label: string): string {
+  return LEGACY_EVENT_LABELS[label] ?? label;
+}
+
 function categoryOf(ev: EarshotEvent): Category {
   if (ev.source === "taught") return "taught";
-  const mapped = CATEGORY_BY_LABEL[ev.label];
+  const mapped = CATEGORY_BY_LABEL[canonicalEventLabel(ev.label)];
   if (mapped) return mapped;
   if (ev.urgency === "high") return "urgent";
   if (ev.urgency === "low") return "appliance";
@@ -46,7 +54,7 @@ function categoryOf(ev: EarshotEvent): Category {
 }
 
 function prettyLabel(label: string): string {
-  return (label || "").replace(/_/g, " ");
+  return canonicalEventLabel(label || "").replace(/_/g, " ");
 }
 
 function clockTime(ts?: number): string {
