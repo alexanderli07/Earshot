@@ -156,3 +156,33 @@ function encodeWav(samples, sampleRate) {
     }
     return new Blob([buffer], { type: "audio/wav" });
 }
+/* ---- cross-page navigation ----
+ * Any <a data-nav="wearable.html"> is rewritten to carry the current ?host=
+ * param (so switching pages keeps the chosen backend) and gets an "active"
+ * class when it points at the current page. Runs on every page (shared.js). */
+function wireNav() {
+    // Guarded so shared.js is safe to import in a non-browser context (tests).
+    if (typeof document === "undefined"
+        || typeof URLSearchParams === "undefined"
+        || !document.querySelectorAll) {
+        return;
+    }
+    const host = new URLSearchParams(location.search).get("host");
+    const suffix = host ? `?host=${encodeURIComponent(host)}` : "";
+    const current = location.pathname.split("/").pop() || "dashboard.html";
+    const links = document.querySelectorAll("a[data-nav]");
+    links.forEach((link) => {
+        const target = link.dataset.nav || "";
+        link.href = target + suffix;
+        if (target === current)
+            link.classList.add("active");
+    });
+}
+if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", wireNav);
+    }
+    else {
+        wireNav();
+    }
+}
