@@ -1,175 +1,171 @@
 # Earshot
 
-Earshot is an offline sound-awareness demo for Raspberry Pi. A microphone feeds
-a local YAMNet model, Earshot turns selected sounds into debounced events, and a
-FastAPI service fans those events out to a dashboard, wearable page, GPIO alert,
-and optional phone notification.
+**Sound awareness through sight and touch.** A smoke alarm is useless to
+someone who can't hear it. Earshot is a Raspberry Pi that listens for the
+sounds that matter — smoke alarms, doorbells, knocking, a baby crying,
+breaking glass — and turns each one into light, vibration, a phone push, and
+a dashboard alert within about a second. Built for Deaf and hard-of-hearing
+users, and for anyone whose ears are busy: headphones on, asleep, in the
+shower, two rooms away.
 
-> **Safety:** Earshot is not a certified smoke alarm, fire alarm, accessibility
-> device, or life-safety system. It can miss alarms and produce false alerts.
-> Never use it to replace approved alarms, emergency procedures, supervision,
-> or required safeguards.
+Built at **Hack the 6ix 2026** by
+[Alexander Li](https://github.com/alexanderli07),
+[Kairav Tupil](https://github.com/KairavT), and
+[Nishant Shah](https://github.com/nishantshah0) —
+**[story and demo on Devpost](https://devpost.com/software/earshot-boihqx)**.
 
-## How it fits together
+> **Safety:** Earshot is a prototype, not a certified smoke alarm, fire
+> alarm, accessibility device, or life-safety system. Classifiers miss events
+> and fire false alerts; microphones can be muted, obstructed, or unplugged.
+> Never use it to replace approved alarms, emergency procedures, or required
+> safeguards.
 
-```text
-microphone
-   -> 16 kHz overlapping windows
-   -> frozen YAMNet TFLite model
-      -> configured AudioSet event rules
-      -> optional trained smoke_alarm logistic head
-      -> optional user-taught cosine-similarity sounds
-   -> streak/evidence gate + 10 second debounce
-   -> FastAPI dispatcher
-   -> WebSocket UI + GPIO + optional ntfy push
+```
+                                          ┌─> alert unit — RGB LED + vibration motor + buzzer
+ sound ──> USB mic ──> ML (YAMNet) ──> backend ──> phone push (ntfy)
+              on the Raspberry Pi         └─> WebSocket ──> live dashboard + wrist wearable
 ```
 
-The repository components are:
+## What it hears
 
-- `earshot/ml`: offline inference, collection, training, evaluation, and CLI.
-- `earshot/backend`: FastAPI event dispatcher and hardware/network sinks.
-- `earshot/frontend`: static dashboard and wearable TypeScript applications.
-- `.github/workflows/tests.yml`: fast ML, runtime-only, backend, and frontend CI.
+Out of the box: **smoke/fire alarm, doorbell, knock, baby cry, and glass
+break**. The smoke-alarm event listens to YAMNet's smoke-detector and
+fire-alarm classes, reinforced by a purpose-trained detector head
+([below](#the-trained-smoke-alarm-head)).
 
-The trained alarm detector is deliberately small. YAMNet remains frozen and
-produces a 1,024-value embedding for each 0.975-second window. Windows training
-uses those embeddings to fit a deterministic logistic-regression head. The Pi
-loads only the exported NPZ head; it does not need scikit-learn.
+Beyond the built-ins, **teach mode** learns any new sound — your kettle, a
+dryer buzzer, an unusual doorbell chime — from ~3 recorded examples, in under
+a minute, with no retraining and no cloud. Signed in, taught sounds follow
+your account across devices ([accounts](#accounts-optional)).
 
-## Windows setup
+Every event carries an urgency (`high` / `medium` / `low`) that picks the
+alert profile — red strobe and a long buzz for a smoke alarm, a gentle blue
+blink for low-priority sounds — and per-sound rules can mute or re-prioritize
+anything at runtime.
 
-Run from the repository root in PowerShell:
+Detection runs entirely on-device: audio never leaves the room. Internet is
+needed only for the one-time model download and the optional phone push.
 
-```powershell
-Set-Location .\earshot\ml
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -e ".[test,train]"
-.\.venv\Scripts\python.exe -m pip install -r ..\backend\requirements.txt
-.\.venv\Scripts\earshot.exe download
-```
+## What's in the repo
 
-This single environment contains the ML runtime, Windows-only training tools,
-backend dependencies, and tests. The model download is checksum pinned. Normal
-detection is offline after it completes.
+| Directory | What it is | Stack |
+|-----------|------------|-------|
+| [`earshot/ml/`](earshot/ml/) | Offline audio-event detector: YAMNet TFLite scores live 16 kHz mic audio, three recognition paths (built-in classes, trained alarm head, taught sounds) feed a streak + debounce gate. CLI and in-process Python API. | Python, LiteRT/TFLite, NumPy, sounddevice |
+| [`earshot/backend/`](earshot/backend/) | The switchboard: one event in, four alerts out — WebSocket broadcast, GPIO or the Pi alert unit, ntfy push, dashboard feed. Optional per-user accounts. | FastAPI, MongoDB (optional) |
+| [`earshot/frontend/`](earshot/frontend/) | Static pages served by the backend: `dashboard.html` (live feed, teach flow, rules, login) and `wearable.html` (Android wrist phone — full-screen flash + vibration). | TypeScript → plain JS, no bundler |
+| [`earshot/pi/`](earshot/pi/) | The physical alert unit: a systemd service on the Pi driving the RGB LED, vibration motor, and buzzer. Power it and it listens. | Python + GPIO |
 
-Build the frontend once:
+Each component README has full setup, tuning, and troubleshooting.
+[`WAVs.zip`](WAVs.zip) holds the original alarm recordings behind the
+training corpus in [`earshot/ml/data/`](earshot/ml/data/); design docs live
+in [`earshot/docs/`](earshot/docs/).
 
-```powershell
-Set-Location ..\frontend
-npm.cmd ci
-npm.cmd run build
-```
+## Quick start (no hardware needed)
 
-Train and evaluate the demo alarm head from `earshot\ml`:
-
-```powershell
-Set-Location ..\ml
-.\.venv\Scripts\earshot.exe train-alarm
-.\.venv\Scripts\earshot.exe evaluate-alarm
-```
-
-Run the backend from `earshot\backend` with the same environment:
-
-```powershell
-Set-Location ..\backend
-..\ml\.venv\Scripts\python.exe -m app.main
-```
-
-Then open `http://localhost:8000/ui/dashboard.html`. Use `localhost` for
-browser microphone teaching on a laptop; browsers generally block microphone
-capture from an insecure `http://<pi-ip>` origin. The dashboard can still point
-at the Pi with `?host=<PI-IP>:8000`.
-
-## Test everything locally
-
-From `earshot\ml`:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -m "not integration" -q
-.\.venv\Scripts\python.exe -m pytest tests\test_real_model.py -q
-.\.venv\Scripts\python.exe -m pytest tests\test_alarm_corpus.py -q -s
-.\.venv\Scripts\python.exe -m pip check
-```
-
-From `earshot\backend`:
-
-```powershell
-..\ml\.venv\Scripts\python.exe -m pytest -q
-```
-
-From `earshot\frontend`:
-
-```powershell
-npm.cmd run build
-$env:EARSHOT_TEST_PYTHON = (Resolve-Path '..\ml\.venv\Scripts\python.exe')
-node .\tests\test_frontend.mjs
-```
-
-The default CI deliberately excludes the downloaded-model and real-corpus
-integration tests. Those remain explicit local acceptance gates because they
-need the pinned artifacts and real audio.
-
-## Current corpus evidence
-
-The checked-in demo corpus currently contains 7 alarm WAVs and 10 negative
-WAVs. The seed-0 run on the full contiguous timelines measured:
-
-- grouped out-of-fold: 7/7 positive groups, 1/10 negative groups, 0.207 false
-  events/minute;
-- fitted-head in-sample evaluation: 7/7 positive groups, 0/10 negative groups,
-  0 false events/minute;
-- deployment threshold: approximately 0.99134.
-
-The sole OOF-triggered negative was
-`not_alarm/Clapping_sound_effect.wav`, with two emitted events. OOF predictions
-also participate in threshold selection, so this is internal validation rather
-than an untouched test set. The in-sample result measures fit, not
-generalization. The corpus has no manifest, source provenance, or held-out
-recording set and lacks several difficult tonal negatives. Treat these numbers
-as demo evidence only.
-
-Source WAVs are preserved exactly. The corpus integration test streams hashes
-before and after training/evaluation and fails if any WAV or manifest changes.
-New or private recordings should live outside Git through
-`EARSHOT_ALARM_DATA_DIR`.
-
-## Raspberry Pi deployment
-
-Use one environment for the backend and ML runtime, without the Windows
-training extra:
+The backend runs on a laptop — GPIO falls back to a logging mock, and debug
+events stand in for the mic — so you can see the whole loop without a Pi.
 
 ```bash
-cd ~/Earshot/earshot/backend
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e ../ml
+# 1. Start the backend
+cd earshot/backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m app.main                      # serves on 0.0.0.0:8000
 
-export EARSHOT_MODEL_DIR="$HOME/.local/share/earshot/models"
-mkdir -p "$EARSHOT_MODEL_DIR"
-earshot download
-python -m pip check
+# 2. Open the dashboard
+#    http://localhost:8000/ui/dashboard.html
+
+# 3. Fire a fake event
+curl -X POST localhost:8000/debug/event \
+     -H 'content-type: application/json' \
+     -d '{"label":"smoke_alarm","urgency":"high"}'
 ```
 
-Copy `fire_smoke_alarm_head.npz` from Windows into that model directory. The
-head embeds checksums for its YAMNet model and class map, so a mismatched Pi
-artifact fails clearly instead of silently changing predictions.
+A new row appears on the dashboard instantly, and the mock "LED" and "motor"
+log what they would have done.
+
+### Live detection
+
+For real microphone events, install the ML package and download the pinned,
+checksum-verified model:
 
 ```bash
-python -m sounddevice
-earshot top5 --device <INPUT_INDEX>
-earshot run --device <INPUT_INDEX>
-
-cd ~/Earshot/earshot/backend
-python -m app.main
+cd earshot/ml
+pip install ".[test]"
+earshot download        # one-time
+earshot top5            # sanity-check the mic, then:
+earshot run             # print live events
 ```
 
-Training on Windows does not inherently reduce Pi accuracy; both platforms use
-the same head and pinned feature extractor. Microphone model, gain, placement,
-speaker, distance, and room acoustics do affect accuracy. A held-out Windows
-playback pass and a separate target-Pi microphone pass are therefore required.
+When `earshot/ml` is importable and its model is present, the backend picks
+up live mic events automatically. See [`earshot/ml/README.md`](earshot/ml/README.md)
+for Raspberry Pi and Windows setup, device selection, and threshold tuning.
 
-See the component READMEs for collection manifests, CLI details, API behavior,
-frontend hosting, and hardware configuration.
+### The wearable
+
+Open `http://<pi>:8000/ui/wearable.html` on an Android phone (iOS ignores the
+vibration API) and tap **ARM** once — browsers only allow vibration and wake
+lock after a user gesture. The color identifies the sound; the urgency sets
+the intensity.
+
+### Accounts (optional)
+
+Auth is **off by default** — the demo needs no database, and the live alert
+path is never behind a login. Set `EARSHOT_MONGO_URI` to enable per-user
+rules, preferences, and taught sounds that roam across devices — either a
+local MongoDB (one command: `earshot/backend/setup-mongo.sh`, fully offline)
+or MongoDB Atlas. Details and the security posture are in
+[`earshot/backend/README.md`](earshot/backend/README.md).
+
+## The trained smoke-alarm head
+
+YAMNet stays frozen and emits a 1,024-value embedding per 0.975 s window; a
+deterministic logistic-regression head trained on those embeddings
+(`earshot train-alarm` / `earshot evaluate-alarm`) is exported as a small NPZ
+with embedded checksums, so the Pi runs it with NumPy alone — no
+scikit-learn, and a mismatched artifact fails loudly instead of silently
+changing predictions.
+
+On the checked-in demo corpus (7 alarm / 10 negative recordings), the
+out-of-fold evaluation caught 7/7 alarm groups with one false-positive group
+(≈0.21 false events/minute). That is demo evidence, not certification — the
+full methodology and caveats are in the
+[ML README](earshot/ml/README.md#collect-and-train-an-alarm-corpus).
+
+## Running on the Pi
+
+One environment serves the backend and the ML runtime (no training extras
+needed on-device): install `earshot/backend/requirements.txt` plus
+`earshot/ml`, run `earshot download`, copy the trained head's NPZ into the
+model directory, and start `python -m app.main`. Alerts can drive the Pi's
+own GPIO directly, or be forwarded (`EARSHOT_PI_URL`) to the dedicated
+[alert unit](earshot/pi/) running as a systemd appliance. Step-by-step:
+[ML Pi setup](earshot/ml/README.md#raspberry-pi-setup) ·
+[backend](earshot/backend/README.md) · [alert unit](earshot/pi/README.md).
+
+**Demo-day notes:** venue Wi-Fi almost always isolates clients, so phones
+can't reach the Pi on it — run everything on a phone hotspot from minute one
+(ntfy still works anywhere; it only needs outbound internet). The dashboard
+and wearable auto-discover the backend when served from it; opened any other
+way, point them at the Pi with `?host=<pi-ip>:8000`.
+
+## Tests
+
+Every push runs four CI jobs
+([workflow](.github/workflows/tests.yml)): the ML fast suite on Python 3.11
+and 3.14, a runtime-without-scikit-learn import check, the backend suite, and
+the frontend build + tests. None need hardware, a network, or the downloaded
+model:
+
+```bash
+cd earshot/ml       && python -m pytest -m "not integration" -q
+cd earshot/backend  && python -m pytest -q     # needs: pip install pytest mongomock-motor
+cd earshot/frontend && npm ci && npm run build && node tests/test_frontend.mjs
+```
+
+## What's next
+
+- Dedicated wearable hardware (ESP32 + haptics) to replace the wrist phone.
+- Per-room calibration profiles and taught-sound sharing between devices.
+- Alert patterns shaped with the Deaf and hard-of-hearing community — the
+  people this is actually for.
