@@ -21,9 +21,9 @@ Built at **Hack the 6ix 2026** by
 > safeguards.
 
 ```
-                                          ┌─> alert unit — RGB LED + vibration motor + buzzer
+                                          ┌─> wearable alert unit — RGB LED + motor + buzzer
  sound ──> USB mic ──> ML (YAMNet) ──> backend ──> phone push (ntfy)
-              on the Raspberry Pi         └─> WebSocket ──> live dashboard + wrist wearable
+              on the Raspberry Pi         └─> WebSocket ──> live dashboard + wearable page
 ```
 
 ## What it hears
@@ -52,8 +52,8 @@ needed only for the one-time model download and the optional phone push.
 |-----------|------------|-------|
 | [`earshot/ml/`](earshot/ml/) | Offline audio-event detector: YAMNet TFLite scores live 16 kHz mic audio, three recognition paths (built-in classes, trained alarm head, taught sounds) feed a streak + debounce gate. CLI and in-process Python API. | Python, LiteRT/TFLite, NumPy, sounddevice |
 | [`earshot/backend/`](earshot/backend/) | The switchboard: one event in, four alerts out — WebSocket broadcast, GPIO or the Pi alert unit, ntfy push, dashboard feed. Optional per-user accounts. | FastAPI, MongoDB (optional) |
-| [`earshot/frontend/`](earshot/frontend/) | Static pages served by the backend: `dashboard.html` (live feed, teach flow, rules, login) and `wearable.html` (Android wrist phone — full-screen flash + vibration). | TypeScript → plain JS, no bundler |
-| [`earshot/pi/`](earshot/pi/) | The physical alert unit: a systemd service on the Pi driving the RGB LED, vibration motor, and buzzer. Power it and it listens. | Python + GPIO |
+| [`earshot/frontend/`](earshot/frontend/) | Static pages served by the backend: `dashboard.html` (live feed, teach flow, rules, login) and `wearable.html` (a phone-based wearable page — full-screen flash + vibration on Android). | TypeScript → plain JS, no bundler |
+| [`earshot/pi/`](earshot/pi/) | The physical wearable alert unit: a systemd service on the Pi driving the RGB LED, motor, and buzzer. Power it and it listens. | Python + GPIO |
 
 Each component README has full setup, tuning, and troubleshooting.
 [`WAVs.zip`](WAVs.zip) holds the original alarm recordings behind the
@@ -103,10 +103,15 @@ for Raspberry Pi and Windows setup, device selection, and threshold tuning.
 
 ### The wearable
 
-Open `http://<pi>:8000/ui/wearable.html` on an Android phone (iOS ignores the
+The physical wearable is the [Pi alert unit](earshot/pi/) — LED, motor, and
+buzzer in a 3D-printed case ([hardware](#the-hardware)). The color identifies
+the sound; the urgency sets the intensity.
+
+There's also a no-hardware browser version: open
+`http://<pi>:8000/ui/wearable.html` on an Android phone (iOS ignores the
 vibration API) and tap **ARM** once — browsers only allow vibration and wake
-lock after a user gesture. The color identifies the sound; the urgency sets
-the intensity.
+lock after a user gesture. Full-screen color flash, vibration patterns
+mirroring the motor.
 
 ### Accounts (optional)
 
@@ -151,17 +156,16 @@ way, point them at the Pi with `?host=<pi-ip>:8000`.
 
 ## The hardware
 
-The alert unit is deliberately simple — hobby parts on a breadboard, in a
-3D-printed enclosure:
+The wearable alert unit is deliberately simple — hobby parts on a breadboard,
+in a 3D-printed enclosure, cordless on a battery pack:
 
 - **Raspberry Pi** running the alert server as a systemd appliance
 - **DC motor on a TB6612 motor driver** — the vibration source
 - **RGB LED** for the color-coded strobe and a **buzzer** for audible backup
 - **Breadboard and jumper wires** tying it together, powered by a **USB
-  battery pack** so the unit is cordless
+  battery pack**
 - **Two 3D-printed plates** (base with standoff pins + slotted top frame)
   that mount the Pi and breadboard rig
-- An **Android phone** strapped to the wrist as the wearable display
 - A **laptop** with the microphone, running ML + backend (see below)
 
 ## Hackathon realities
@@ -180,9 +184,10 @@ Parts of the demo rig are honest workarounds, and we'd rather say so:
   alarm and 10 non-alarm clips — enough to prove the pipeline end to end,
   nowhere near enough to trust (the numbers and caveats
   [above](#the-trained-smoke-alarm-head) are honest about this).
-- **Browsers fight wearables.** Vibration and wake lock are only allowed
-  after a user gesture — hence the wearable's one-tap ARM — and iOS ignores
-  the vibration API entirely, which is why the wrist phone is an Android.
+- **Browsers fight wearables.** The phone-based wearable page needs a user
+  gesture before vibration and wake lock are allowed — hence its one-tap
+  ARM — and iOS ignores the vibration API entirely, so it's Android-only.
+  The real wearable is our own hardware, which asks no permission to shake.
 
 ## Tests
 
