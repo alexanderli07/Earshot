@@ -149,6 +149,41 @@ can't reach the Pi on it — run everything on a phone hotspot from minute one
 and wearable auto-discover the backend when served from it; opened any other
 way, point them at the Pi with `?host=<pi-ip>:8000`.
 
+## The hardware
+
+The alert unit is deliberately simple — hobby parts on a breadboard, in a
+3D-printed enclosure:
+
+- **Raspberry Pi** running the alert server as a systemd appliance
+- **DC motor on a TB6612 motor driver** — the vibration source
+- **RGB LED** for the color-coded strobe and a **buzzer** for audible backup
+- **Breadboard and jumper wires** tying it together, powered by a **USB
+  battery pack** so the unit is cordless
+- **Two 3D-printed plates** (base with standoff pins + slotted top frame)
+  that mount the Pi and breadboard rig
+- An **Android phone** strapped to the wrist as the wearable display
+- A **laptop** with the microphone, running ML + backend (see below)
+
+## Hackathon realities
+
+Parts of the demo rig are honest workarounds, and we'd rather say so:
+
+- **No USB microphone.** The Pi was supposed to do its own listening; we
+  couldn't get a mic. So the laptop listened — microphone, YAMNet, and
+  backend all ran there, forwarding every event to the Pi alert unit over
+  the hotspot (`EARSHOT_PI_URL`). Because the backend fans out to sinks,
+  the relocation was a config change, not a rewrite — and the on-Pi path
+  still works when a mic is present.
+- **No vibration motor.** None to be found, so a plain DC motor on the
+  TB6612 driver does the shaking. It shakes convincingly.
+- **Not much training data.** The trained alarm head learned from just 7
+  alarm and 10 non-alarm clips — enough to prove the pipeline end to end,
+  nowhere near enough to trust (the numbers and caveats
+  [above](#the-trained-smoke-alarm-head) are honest about this).
+- **Browsers fight wearables.** Vibration and wake lock are only allowed
+  after a user gesture — hence the wearable's one-tap ARM — and iOS ignores
+  the vibration API entirely, which is why the wrist phone is an Android.
+
 ## Tests
 
 Every push runs four CI jobs
