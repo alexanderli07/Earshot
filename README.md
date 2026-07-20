@@ -103,9 +103,10 @@ for Raspberry Pi and Windows setup, device selection, and threshold tuning.
 
 ### The wearable
 
-The physical wearable is the [Pi alert unit](earshot/pi/) — LED, motor, and
-buzzer in a 3D-printed case ([hardware](#the-hardware)). The color identifies
-the sound; the urgency sets the intensity.
+The physical wearable is the [Pi alert unit](earshot/pi/), worn as a velcro
+sleeve: the breadboard rides on top of the wrist, the Pi sits underneath, and
+two 3D-printed plates ([hardware](#the-hardware)) strap it all down. The
+color identifies the sound; the urgency sets the intensity.
 
 There's also a no-hardware browser version: open
 `http://<pi>:8000/ui/wearable.html` on an Android phone (iOS ignores the
@@ -164,9 +165,15 @@ in a 3D-printed enclosure, cordless on a battery pack:
 - **RGB LED** for the color-coded strobe and a **buzzer** for audible backup
 - **Breadboard and jumper wires** tying it together, powered by a **USB
   battery pack**
-- **Two 3D-printed plates** (base with standoff pins + slotted top frame)
-  that mount the Pi and breadboard rig
+- **Two 3D-printed plates** velcro-strapped into a wrist sleeve — the
+  breadboard tray rides on top of the wrist, the pinned Pi plate sits
+  underneath
 - A **laptop** with the microphone, running ML + backend (see below)
+
+![The two wearable plates — pinned Pi mount and breadboard tray — ready to print](earshot/hardware/wearable-plates.png)
+
+Print-ready STLs for both plates are in
+[`earshot/hardware/`](earshot/hardware/).
 
 ## Hackathon realities
 
