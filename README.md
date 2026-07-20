@@ -153,7 +153,8 @@ own GPIO directly, or be forwarded (`EARSHOT_PI_URL`) to the dedicated
 can't reach the Pi on it — run everything on a phone hotspot from minute one
 (ntfy still works anywhere; it only needs outbound internet). The dashboard
 and wearable auto-discover the backend when served from it; opened any other
-way, point them at the Pi with `?host=<pi-ip>:8000`.
+way, point them at the Pi with `?host=<pi-ip>:8000`. Triggering is low-tech:
+alarm clips played out loud from a phone speaker detect just fine.
 
 ## The hardware
 
